@@ -297,21 +297,24 @@ tests/
 
 ### API 契约
 
-生成 `/contracts/` 目录下的 JSON Schema：
+生成 `/contracts/` 目录下的 JSON Schema。
 
-1. **task-api.json** - 任务管理 API
-   - POST /tasks - 创建任务
-   - GET /tasks/:id - 获取任务状态
-   - DELETE /tasks/:id - 取消任务
-   - GET /tasks/:id/history - 获取任务历史
+> **注意**: 以下契约定义的是 **in-process 编程接口**（函数签名与数据结构），而非 HTTP REST 端点。使用 HTTP 风格表示法（method + path）仅为描述约定，不暗示网络传输。系统采用进程内函数调用通信。
 
-2. **scorer-api.json** - 评分 API
-   - POST /scores - 提交评分
-   - GET /scores/:taskId - 获取任务评分历史
+1. **task-api.json** - 任务管理接口
+   - createTask - 创建任务
+   - getTask - 获取任务状态
+   - cancelTask - 取消任务
+   - getTaskHistory - 获取任务历史
+   - bindSession / unbindSession - 会话绑定/解绑
 
-3. **mediator-api.json** - 调节 API
-   - POST /mediations - 触发调节
-   - GET /mediations/:taskId - 获取调节记录
+2. **scorer-api.json** - 评分接口
+   - submitScore - 提交评分
+   - getScoresByTask - 获取任务评分历史
+
+3. **mediator-api.json** - 调节接口
+   - triggerMediation - 触发调节
+   - getMediationsByTask - 获取调节记录
 
 ### 快速开始指南
 

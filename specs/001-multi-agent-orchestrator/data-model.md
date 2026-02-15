@@ -223,6 +223,9 @@ type TaskEvent
     | { type: 'failed', timestamp: number, error: TaskError }
     | { type: 'cancelled', timestamp: number, reason: string }
     | { type: 'retried', timestamp: number, attempt: number }
+    | { type: 'session_bound', timestamp: number, sessionId: string }
+    | { type: 'session_disconnected', timestamp: number, sessionId: string }
+    | { type: 'session_reconnected', timestamp: number, sessionId: string }
 
 // 创建任务数据
 interface CreateTaskData {
@@ -263,9 +266,9 @@ interface UserQuery {
   selectedOption?: string // 选中的选项 ID
   respondedAt?: number // 响应时间戳
 
-  // 超时配置
-  timeout: number // 超时时间（毫秒），默认 10 分钟
-  expiresAt: number // 过期时间戳
+  // 等待策略
+  waitIndefinitely: true // 无限期等待用户响应
+  reminderInterval: number // 提醒间隔（毫秒），默认 24 小时
 
   // 时间信息
   createdAt: number // 创建时间戳
@@ -343,6 +346,37 @@ interface AgentStatistics {
 }
 ```
 
+### 8. SessionBinding（会话绑定）
+
+AI 会话与任务的绑定关系，用于支持会话生命周期管理和断线重连。
+
+```typescript
+interface SessionBinding {
+  // 基本信息
+  sessionId: string // 会话唯一标识
+  taskId: string // 绑定的任务 ID
+
+  // 状态信息
+  status: SessionStatus // 会话状态
+  pollInterval: number // 轮询间隔（毫秒），默认 10000
+
+  // 时间信息
+  boundAt: number // 绑定时间戳
+  lastActiveAt: number // 最后活跃时间戳
+  disconnectedAt?: number // 断开时间戳
+
+  // 元数据
+  metadata: Record<string, any> // 会话元数据
+}
+
+// 会话状态
+type SessionStatus
+  = | 'active' // 活跃
+    | 'disconnected' // 已断开（任务继续后台运行）
+    | 'reconnected' // 已重连
+    | 'closed' // 已关闭（任务完成后自动关闭）
+```
+
 ## 关系图
 
 ```
@@ -351,6 +385,7 @@ Task (1) ──> (0..n) Score (评分历史)
 Task (1) ──> (0..n) Mediation (调节历史)
 Task (1) ──> (0..1) UserQuery (用户询问)
 Task (1) ──> (1) TaskHistory (任务历史)
+Task (1) ──> (0..1) SessionBinding (会话绑定)
 Task (n) ──> (1) Agent (分配关系)
 ```
 
@@ -365,11 +400,13 @@ scores:{task-id}:{score-id}        # 评分记录
 mediations:{task-id}:{mediation-id} # 调节记录
 queries:{task-id}:{query-id}       # 用户询问
 agents:{agent-id}                  # Agent 信息
+sessions:{session-id}              # 会话绑定
 
 # 索引
 index:status:{status}              # 按状态索引任务
 index:agent:{agent-id}             # 按 Agent 索引任务
 index:parent:{parent-id}           # 按父任务索引子任务
+index:session:{session-id}         # 按会话索引任务
 ```
 
 ### 示例数据

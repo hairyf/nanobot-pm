@@ -25,7 +25,7 @@
 **目的**: 项目初始化与基本结构搭建
 
 - [ ] T001 按照 plan.md 创建项目目录结构：src/{orchestrator,task,scorer,mediator,agents,storage,cli/commands,config,utils}/ 和 tests/{unit,integration,fixtures}/
-- [ ] T002 初始化 TypeScript 项目，包含 package.json 和 tsconfig.json，安装依赖：citty、unstorage、c12、hookable、pathe、ofetch、consola、vitest、tsdown
+- [ ] T002 初始化 TypeScript 项目，包含 package.json 和 tsconfig.json，安装依赖：citty、unstorage、c12、hookable、pathe、ofetch、consola、zod、vitest、tsdown
 - [ ] T003 [P] 在 eslint.config.ts 中配置 ESLint（使用 @antfu/eslint-config）
 - [ ] T004 [P] 在 vitest.config.ts 中配置 Vitest 的单元测试和集成测试
 - [ ] T005 [P] 在 tsdown.config.ts 中配置 tsdown 构建工具
@@ -44,7 +44,7 @@
 - [ ] T007 [P] 在 src/scorer/types.ts 中定义 Score、ScoreResult、ScoreCriterion、ScoringRule 类型
 - [ ] T008 [P] 在 src/mediator/types.ts 中定义 Mediation、Diagnosis、ProblemType、Solution、SolutionType、MediationResult 类型
 - [ ] T009 [P] 在 src/agents/types.ts 中定义 Agent、AgentStatus、AgentConfig、RetryStrategy、AgentStatistics 类型
-- [ ] T010 [P] 在 src/orchestrator/types.ts 中定义 OrchestratorHooks、OrchestratorConfig、SessionBinding、ReporterOptions 类型
+- [ ] T010 [P] 在 src/orchestrator/types.ts 中定义 OrchestratorHooks、OrchestratorConfig（含 pollInterval 字段，默认 10 秒）、SessionBinding（sessionId、taskId、status、pollInterval、boundAt、lastActiveAt、disconnectedAt）、ReporterOptions 类型
 - [ ] T011 [P] 在 src/storage/types.ts 中定义 StorageConfig 和存储接口（TaskStoreInterface、HistoryStoreInterface）
 
 ### 配置系统
@@ -99,7 +99,7 @@
 
 ### 用户故事 1 的实现
 
-- [ ] T035 [US1] 在 src/agents/loader.ts 中实现 Agent 加载器（扫描 .cursor/agents/、.claude/agents/ 目录，解析 JSON 定义）
+- [ ] T035 [US1] 在 src/agents/loader.ts 中实现 Agent 加载器（扫描 AI Agents 环境标准目录如 .cursor/agents/、.claude/agents/，目录列表通过配置 agents.directories 指定，解析 JSON 定义）
 - [ ] T036 [US1] 在 src/agents/index.ts 中实现 Agent 注册表（register、unregister、getById、listAvailable、matchByCapabilities）
 - [ ] T037 [US1] 在 src/agents/executor.ts 中实现 Agent 执行器（通过 agent 执行任务、处理结果/错误、遵守超时）
 - [ ] T038 [US1] 在 src/task/classifier.ts 中实现任务分类器（分析描述关键词、匹配 agent 能力、确定类型）
@@ -171,7 +171,7 @@
 - [ ] T068 [US3] 在 src/task/manager.ts 中扩展 TaskManager 以支持 waiting_user 状态转换和收到响应后恢复
 - [ ] T069 [US3] 在 src/task/user-query.ts 中实现用户响应处理器（验证响应、更新查询、触发任务恢复）
 - [ ] T070 [US3] 在 src/orchestrator/index.ts 中扩展编排器循环以支持 inquiry 任务类型（检测询问 → 暂停 → 询问用户 → 恢复）
-- [ ] T071 [US3] 在 src/task/user-query.ts 中实现查询超时处理（默认 10 分钟、标记为 waiting_user、通知用户）
+- [ ] T071 [US3] 在 src/task/user-query.ts 中实现无限期等待策略（任务保持 waiting_user 状态、每 24 小时发送提醒通知、不会因超时终止）
 - [ ] T072 [US3] 在 src/cli/utils.ts 中添加 CLI 交互式提示用于用户查询（显示问题、选项、接受输入）
 
 **检查点**: 此时，用户故事 1-3 应都能独立工作。任务可以直接执行、委派给子 agent、或暂停等待用户输入。
@@ -245,7 +245,9 @@
 - [ ] T097 [P] 边界情况：网络中断——操作前持久化状态，恢复后继续执行，在 src/storage/task-store.ts 中实现
 - [ ] T098 边界情况：会话断开——验证 AI 会话关闭后任务在后台继续运行、会话绑定被清理、可通过 status 重连（FR-019），在 src/orchestrator/reporter.ts 中实现
 - [ ] T099 边界情况：同一会话中多次 specify——当会话已绑定活跃任务时拒绝第二次 /agentic.specify，显示包含当前任务 ID 的错误信息，在 src/cli/commands/specify.ts 中实现
-- [ ] T100 [P] 为 src/ 中所有公共 API 添加完整的 JSDoc 文档
+- [ ] T100 [P] 在 src/orchestrator/scheduler.ts 中实现 Agent 心跳超时检测（默认 30 秒无响应判定崩溃，拒绝已重分配任务的迟到提交，FR-023）
+- [ ] T101a [P] 在 src/task/queue.ts 中实现资源耗尽检测（内存超阈值时暂停接受新任务并记录告警日志，FR-024）
+- [ ] T101b [P] 为 src/ 中所有公共 API 添加完整的 JSDoc 文档
 - [ ] T101 性能验证：确保任务启动 < 30 秒、分类 < 5 秒、状态查询 < 2 秒
 - [ ] T102 运行 quickstart.md 验证：端到端执行所有已记录的场景
 - [ ] T103 在 src/index.ts 中实现包入口点及公共 API 的重导出

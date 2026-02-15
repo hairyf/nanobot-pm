@@ -31,14 +31,15 @@ pnpm build
 agentic init
 
 # 这将创建：
-# - .agentic/config.ts - 配置文件
-# - .agentic/storage/ - 存储目录
-# - .agentic/agents/ - Agent 定义目录
+# - agentic.config.ts - 配置文件（项目根目录）
+# - .agentic/storage/ - 存储目录（任务状态和历史）
 ```
+
+> **注意**: Agent 定义存放在 AI Agents 环境的标准目录中（如 `.cursor/agents/`、`.claude/agents/`），而非 `.agentic/` 目录。
 
 ## 基本配置
 
-编辑 `.agentic/config.ts`：
+编辑项目根目录的 `agentic.config.ts`：
 
 ```typescript
 import { defineConfig } from 'agentic-x/config/define'
@@ -49,6 +50,7 @@ export default defineConfig({
     maxConcurrentTasks: 5, // 最大并发任务数
     defaultTimeout: 1800000, // 默认超时（30 分钟）
     maxRetries: 3, // 最大重试次数
+    pollInterval: 10000, // 进度轮询间隔（毫秒），默认 10 秒
   },
 
   // 评分配置
@@ -71,7 +73,7 @@ export default defineConfig({
 
   // Agent 配置
   agents: {
-    directory: './.agentic/agents', // Agent 定义目录
+    directories: ['.cursor/agents/', '.claude/agents/'], // AI Agents 环境目录
     autoLoad: true, // 自动加载 Agent
   },
 })
@@ -79,7 +81,7 @@ export default defineConfig({
 
 ## 创建第一个 Agent
 
-在 `.agentic/agents/` 目录下创建 `developer.json`：
+在 AI Agents 环境目录下创建 Agent 定义文件（如 `.cursor/agents/developer.json`）：
 
 ```json
 {
@@ -232,9 +234,11 @@ agentic status 550e8400-e29b-41d4-a716-446655440000 --watch
 
 ## 查看任务历史
 
+> 任务历史通过 `agentic status <task-id> --history` 查看（history 是 status 的子功能）。
+
 ```bash
 # 查看任务历史
-agentic history 550e8400-e29b-41d4-a716-446655440000
+agentic status 550e8400-e29b-41d4-a716-446655440000 --history
 
 # 输出示例：
 # 任务历史
@@ -322,10 +326,10 @@ B
 
 **解决方案**:
 ```bash
-# 检查 Agent 状态
-agentic agents list
+# 检查 Agent 状态（通过 init 命令的诊断输出查看）
+agentic init --check
 
-# 如果没有 Agent，创建一个
+# 如果没有 Agent，在 AI Agents 环境目录下创建 Agent 定义
 # 如果 Agent 都在忙碌，等待或增加并发数
 ```
 
@@ -361,7 +365,8 @@ agentic history <task-id>
 **解决方案**:
 ```bash
 # 系统会提示需要创建的 Agent 类型
-# 根据提示在 .agentic/agents/ 目录下创建 Agent 定义
+# 根据提示在 AI Agents 环境目录下创建 Agent 定义
+# 例如：.cursor/agents/designer.json 或 .claude/agents/designer.json
 ```
 
 ## 下一步
@@ -440,14 +445,8 @@ agentic specify "选择技术栈并创建项目"
 4. **监控 Agent 性能**: 定期查看 Agent 统计信息，优化配置
 
 ```bash
-# 查看 Agent 统计
-agentic agents stats agent-dev-001
+# 查看任务统计（通过 status 命令的详情输出）
+agentic status <task-id> --history
 
-# 输出示例：
-# Agent: agent-dev-001
-# 总任务数: 150
-# 完成任务数: 135
-# 失败任务数: 15
-# 平均时长: 18 分钟
-# 成功率: 90%
+# 历史输出包含统计信息：总时长、执行时长、等待时长、重试次数、评分次数
 ```

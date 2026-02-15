@@ -20,6 +20,7 @@
 - pathe (跨平台路径处理)
 - ofetch (HTTP 客户端，用于 Agent 通信)
 - consola (日志输出)
+- zod (数据验证，用于 Task/Score/Mediation 等实体的 schema 验证)
 
 **存储**: unstorage (文件系统驱动) - 任务状态、历史记录、评分记录
 **测试**: Vitest (单元测试 + 集成测试)
@@ -48,10 +49,10 @@
 
 ### 原则 I：库优先（Library-First）
 ✅ **通过** - 核心功能实现为独立模块：
-- `src/orchestrator/` - 循环器核心逻辑
-- `src/scorer/` - 评分系统
-- `src/mediator/` - 调节者
-- `src/task/` - 任务管理
+- `src/orchestrator/` - 循环器核心逻辑（含 SessionBinding 会话绑定管理）
+- `src/scorer/` - 评分系统（rule/heuristic/manual 三种类型）
+- `src/mediator/` - 调节者（CBR 案例推理 + 规则引擎）
+- `src/task/` - 任务管理（含子任务委派，最大深度 10）
 - 每个模块可独立测试和文档化
 
 ### 原则 II：CLI 接口
@@ -252,9 +253,11 @@ tests/
    - id: string (UUID)
    - description: string
    - type: 'local' | 'downstream' | 'inquiry'
-   - status: 'pending' | 'running' | 'waiting_user' | 'completed' | 'failed'
+   - status: 'pending' | 'running' | 'waiting_user' | 'completed' | 'failed' | 'cancelled'
    - assignedAgent: string
    - parentTaskId?: string
+   - childTaskIds: string[]
+   - depth: number (0-10)
    - createdAt: number
    - updatedAt: number
    - metadata: Record<string, any>
@@ -375,6 +378,7 @@ Phase 1 设计完成后，重新检查宪法合规性：
 - pathe: ^1.1.0
 - ofetch: ^1.3.0
 - consola: ^3.2.0
+- zod: ^3.23.0
 - vitest: ^2.0.0
 
 ### 开发工具

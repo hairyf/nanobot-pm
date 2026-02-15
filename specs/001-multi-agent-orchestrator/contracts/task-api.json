@@ -257,6 +257,83 @@
         }
       }
     },
+    "bindSession": {
+      "method": "POST",
+      "path": "/tasks/:id/session",
+      "description": "Bind an AI session to a task for progress polling",
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "required": true,
+            "description": "Task ID"
+          }
+        },
+        "body": {
+          "type": "object",
+          "required": ["sessionId"],
+          "properties": {
+            "sessionId": {
+              "type": "string",
+              "description": "AI session identifier"
+            },
+            "pollInterval": {
+              "type": "number",
+              "minimum": 1000,
+              "default": 10000,
+              "description": "Progress polling interval in milliseconds"
+            }
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Session bound successfully",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "sessionId": { "type": "string" },
+              "taskId": { "type": "string", "format": "uuid" },
+              "status": { "type": "string", "enum": ["active"] },
+              "boundAt": { "type": "number" }
+            }
+          }
+        },
+        "409": {
+          "description": "Session already bound to another task",
+          "schema": { "$ref": "#/definitions/Error" }
+        }
+      }
+    },
+    "unbindSession": {
+      "method": "DELETE",
+      "path": "/tasks/:id/session",
+      "description": "Unbind session from task (session disconnect)",
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "required": true,
+            "description": "Task ID"
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Session unbound (task continues in background)",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "taskId": { "type": "string", "format": "uuid" },
+              "status": { "type": "string", "description": "Task continues running" },
+              "disconnectedAt": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
     "getTaskHistory": {
       "method": "GET",
       "path": "/tasks/:id/history",
@@ -474,6 +551,19 @@
         "mediationCount": {
           "type": "number"
         }
+      }
+    },
+    "SessionBinding": {
+      "type": "object",
+      "required": ["sessionId", "taskId", "status", "boundAt"],
+      "properties": {
+        "sessionId": { "type": "string" },
+        "taskId": { "type": "string", "format": "uuid" },
+        "status": { "type": "string", "enum": ["active", "disconnected", "reconnected", "closed"] },
+        "pollInterval": { "type": "number" },
+        "boundAt": { "type": "number" },
+        "lastActiveAt": { "type": "number" },
+        "disconnectedAt": { "type": "number" }
       }
     },
     "Error": {

@@ -1,9 +1,15 @@
-[submodule "sources/nanobot"]
-	path = sources/nanobot
-	url = https://github.com/HKUDS/nanobot
-[submodule "sources/nanoclaw"]
-	path = sources/nanoclaw
-	url = https://github.com/gavrielc/nanoclaw.git
-[submodule "sources/agent-flow"]
-	path = sources/agent-flow
-	url = https://github.com/whrit/agent-flow
+[submodule "sources/opencode"]
+	path = sources/opencode
+	url = https://github.com/anomalyco/opencode
+[submodule "sources/claude-flow"]
+	path = sources/claude-flow
+	url = https://github.com/ruvnet/claude-flow
+[submodule "sources/ralph"]
+	path = sources/ralph
+	url = https://github.com/snarktank/ralph
+[submodule "sources/auto-company"]
+	path = sources/auto-company
+	url = https://github.com/MaxMiksa/Auto-Company
+[submodule "sources/claude-quickstarts"]
+	path = sources/claude-quickstarts
+	url = https://github.com/anthropics/claude-quickstarts

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Task Management API",
-  "description": "API contract for task management operations",
+  "description": "API contract for task management operations. NOTE: These contracts define in-process programmatic interfaces (function signatures and data schemas), NOT HTTP REST endpoints. The system uses in-process function calls for all Agent-Orchestrator communication. The HTTP-style method/path notation is used as a convention to describe operations and is not intended to imply network transport.",
   "version": "1.0.0",
   "endpoints": {
     "createTask": {

@@ -352,7 +352,7 @@ agentic specify "任务描述" --timeout 3600000  # 60 分钟
 **解决方案**:
 ```bash
 # 查看评分反馈
-agentic history <task-id>
+agentic status <task-id> --history
 
 # 根据反馈调整任务描述或评分标准
 # 如果多次驳回，调节者会自动介入

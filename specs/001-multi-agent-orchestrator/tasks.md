@@ -25,7 +25,7 @@
 **目的**: 项目初始化与基本结构搭建
 
 - [ ] T001 按照 plan.md 创建项目目录结构：src/{orchestrator,task,scorer,mediator,agents,storage,cli/commands,config,utils}/ 和 tests/{unit,integration,fixtures}/
-- [ ] T002 初始化 TypeScript 项目，包含 package.json 和 tsconfig.json，安装依赖：citty、unstorage、c12、hookable、pathe、ofetch、consola、zod、vitest、tsdown
+- [ ] T002 初始化 TypeScript 项目，包含 package.json 和 tsconfig.json，安装依赖：citty、unstorage、c12、hookable、pathe、consola、zod、vitest、tsdown
 - [ ] T003 [P] 在 eslint.config.ts 中配置 ESLint（使用 @antfu/eslint-config）
 - [ ] T004 [P] 在 vitest.config.ts 中配置 Vitest 的单元测试和集成测试
 - [ ] T005 [P] 在 tsdown.config.ts 中配置 tsdown 构建工具
@@ -61,7 +61,7 @@
 
 ### 工具函数
 
-- [ ] T018 [P] 在 src/utils/logger.ts 中使用 consola 实现日志工具（debug、info、warn、error 级别）
+- [ ] T018 [P] 在 src/utils/logger.ts 中使用 consola 实现日志工具（debug、info、warn、error 级别），定义关键操作日志点辅助函数：任务创建（task:created）、Agent 分配（task:assigned）、评分提交（score:submitted）、调节触发（mediation:triggered）、任务完成（task:completed）、任务失败（task:failed），确保与 spec.md 可观测性要求对齐
 - [ ] T019 [P] 在 src/utils/timer.ts 中实现计时工具（createTimeout、createInterval、withTimeout 封装）
 - [ ] T020 [P] 在 src/utils/validator.ts 中实现验证工具（generateUUID、validateTaskInput、validateConfig）
 - [ ] T021 在 src/utils/index.ts 中实现工具函数入口点及重导出
@@ -91,7 +91,7 @@
 - [ ] T027 [P] [US1] 在 tests/unit/task/queue.test.ts 中编写 TaskQueue 的单元测试（入队、出队、并发限制）
 - [ ] T028 [P] [US1] 在 tests/unit/agents/loader.test.ts 中编写 AgentLoader 的单元测试（从目录读取 Agent 定义）
 - [ ] T029 [P] [US1] 在 tests/unit/agents/registry.test.ts 中编写 AgentRegistry 的单元测试（注册、匹配能力、选择最佳）
-- [ ] T030 [P] [US1] 在 tests/unit/scorer/evaluator.test.ts 中编写 Scorer 评估器的单元测试（基于规则的评分、启发式阈值）
+- [ ] T030 [P] [US1] 在 tests/unit/scorer/evaluator.test.ts 中编写评分器的单元测试（基于规则的评分、启发式阈值）
 - [ ] T031 [P] [US1] 在 tests/unit/orchestrator/loop.test.ts 中编写 Orchestrator 主循环的单元测试（完整 classify→assign→execute→score 循环）
 - [ ] T032 [P] [US1] 在 tests/unit/orchestrator/reporter.test.ts 中编写 Session 报告器的单元测试（绑定会话到任务、按间隔发送进度、检测会话关闭）
 - [ ] T033 [P] [US1] 在 tests/integration/task-flow.test.ts 中编写基础任务流程的集成测试（使用 mock agent 的端到端测试）
@@ -103,16 +103,16 @@
 - [ ] T036 [US1] 在 src/agents/index.ts 中实现 Agent 注册表（register、unregister、getById、listAvailable、matchByCapabilities）
 - [ ] T037 [US1] 在 src/agents/executor.ts 中实现 Agent 执行器（通过 agent 执行任务、处理结果/错误、遵守超时）
 - [ ] T038 [US1] 在 src/task/classifier.ts 中实现任务分类器（分析描述关键词、匹配 agent 能力、确定类型）
-- [ ] T039 [US1] 在 src/task/manager.ts 中实现带 FSM 的任务管理器（创建任务、转换状态、验证转换、处理重试）
+- [ ] T039 [US1] 在 src/task/manager.ts 中实现带 FSM 的任务管理器（创建任务、转换状态、验证转换、处理重试）。采用持久化状态机步进模型：每步从 unstorage 加载状态→执行到决策点→持久化状态→结束，事件驱动下一步执行
 - [ ] T040 [US1] 在 src/task/queue.ts 中实现带 Promise 池的任务队列（入队、出队、遵守配置中的 maxConcurrentTasks 限制）
 - [ ] T041 [US1] 在 src/task/index.ts 中实现任务模块入口点及重导出
-- [ ] T042 [US1] 在 src/scorer/evaluator.ts 中实现评分评估器（可配置规则、加权标准、启发式阈值调整）
+- [ ] T042 [US1] 在 src/scorer/evaluator.ts 中实现评分器（可配置规则、加权标准、启发式阈值调整）
 - [ ] T043 [US1] 在 src/scorer/feedback.ts 中实现评分反馈处理器（解析反馈、生成改进建议）
 - [ ] T044 [US1] 在 src/scorer/index.ts 中实现评分器入口点（评估任务结果、决定通过/驳回）
 - [ ] T045 [US1] 在 src/orchestrator/index.ts 中使用 hookable 实现编排器事件钩子（task:created、task:assigned、task:completed、score:submitted）
 - [ ] T046 [US1] 在 src/orchestrator/scheduler.ts 中实现调度器（将任务分配给最佳 agent、使用退避策略管理重试）
 - [ ] T047 [US1] 在 src/orchestrator/dispatcher.ts 中实现分发器（按能力选择 agent、检查可用性、回退到队列）
-- [ ] T048 [US1] 在 src/orchestrator/index.ts 中实现编排器主循环（classify → assign → execute → score → 决定下一步操作）
+- [ ] T048 [US1] 在 src/orchestrator/index.ts 中实现编排器主循环（classify → assign → execute → score → 决定下一步操作）。每一步为独立的状态机步进（加载状态→执行→持久化→退出），由 hookable 事件驱动步进衔接
 - [ ] T049 [US1] 在 src/orchestrator/reporter.ts 中实现会话报告器（将会话绑定到任务、每 10 秒可配置间隔自动轮询进度、检测会话关闭/断开，FR-012/FR-019）
 - [ ] T050 [US1] 在 src/orchestrator/index.ts 中实现后台任务执行（将任务循环与会话生命周期解耦、会话断开时任务继续运行、在 unstorage 中持久化会话绑定，FR-019）
 - [ ] T051 [US1] 在 src/cli/commands/init.ts 中实现 CLI init 命令（创建 .agentic/ 目录、配置文件、存储目录、agents 目录）
@@ -223,7 +223,7 @@
 
 ### 用户故事 5 的实现
 
-- [ ] T087 [US5] 在 src/cli/commands/status.ts 中实现带重连功能的 CLI status 命令（按 ID 查询任务、显示状态/进度/agent/时长、通过会话报告器恢复轮询模式，FR-020）
+- [ ] T087 [US5] 在 src/cli/commands/status.ts 中实现带重连功能的 CLI status 命令（按 ID 查询任务、显示状态/进度/agent/时长、通过会话报告器恢复轮询模式、支持 `--watch` 标志进入持续监控，FR-014/FR-020）
 - [ ] T088 [US5] 在 src/cli/commands/status.ts 中实现活跃任务列表（无 task-id 时：列出所有活跃任务及状态摘要，FR-021）
 - [ ] T089 [US5] 在 src/cli/commands/status.ts 中实现重连时显示待处理查询（当任务处于 waiting_user 状态时，立即显示待处理的问题，FR-022）
 - [ ] T090 [US5] 在 src/cli/commands/cancel.ts 中实现 CLI cancel 命令（附带原因取消任务、验证可取消状态）
@@ -248,7 +248,7 @@
 - [ ] T100 [P] 在 src/orchestrator/scheduler.ts 中实现 Agent 心跳超时检测（默认 30 秒无响应判定崩溃，拒绝已重分配任务的迟到提交，FR-023）
 - [ ] T101a [P] 在 src/task/queue.ts 中实现资源耗尽检测（内存超阈值时暂停接受新任务并记录告警日志，FR-024）
 - [ ] T101b [P] 为 src/ 中所有公共 API 添加完整的 JSDoc 文档
-- [ ] T101 性能验证：确保任务启动 < 30 秒、分类 < 5 秒、状态查询 < 2 秒
+- [ ] T101 性能验证：确保任务启动 < 30 秒（SC-001）、分类 < 5 秒（SC-002）、状态查询 < 2 秒（SC-005）；SC-007 并发延迟对比测试——5 个并发任务下单任务操作延迟增加不超过 50%（与单任务基线对比）
 - [ ] T102 运行 quickstart.md 验证：端到端执行所有已记录的场景
 - [ ] T103 在 src/index.ts 中实现包入口点及公共 API 的重导出
 
@@ -304,7 +304,7 @@ Task: T026 "TaskManager 单元测试，在 tests/unit/task/manager.test.ts"
 Task: T027 "TaskQueue 单元测试，在 tests/unit/task/queue.test.ts"
 Task: T028 "AgentLoader 单元测试，在 tests/unit/agents/loader.test.ts"
 Task: T029 "AgentRegistry 单元测试，在 tests/unit/agents/registry.test.ts"
-Task: T030 "Scorer 评估器单元测试，在 tests/unit/scorer/evaluator.test.ts"
+Task: T030 "评分器单元测试，在 tests/unit/scorer/evaluator.test.ts"
 Task: T031 "Orchestrator 主循环单元测试，在 tests/unit/orchestrator/loop.test.ts"
 Task: T032 "Session 报告器单元测试，在 tests/unit/orchestrator/reporter.test.ts"
 Task: T033 "任务流程集成测试，在 tests/integration/task-flow.test.ts"
@@ -313,7 +313,7 @@ Task: T034 "会话生命周期集成测试，在 tests/integration/session-lifec
 # 然后启动可独立执行的实现任务：
 Task: T035 "Agent 加载器，在 src/agents/loader.ts"          # [P] 可与 T038 并行
 Task: T038 "任务分类器，在 src/task/classifier.ts"           # [P] 可与 T035 并行
-Task: T042 "Scorer 评估器，在 src/scorer/evaluator.ts"      # [P] 可与 T035、T038 并行
+Task: T042 "评分器，在 src/scorer/evaluator.ts"      # [P] 可与 T035、T038 并行
 ```
 
 ---

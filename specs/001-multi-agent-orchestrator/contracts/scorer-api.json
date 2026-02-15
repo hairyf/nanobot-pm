@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Scorer API",
-  "description": "API contract for task scoring operations",
+  "description": "API contract for task scoring operations. NOTE: These contracts define in-process programmatic interfaces (function signatures and data schemas), NOT HTTP REST endpoints. The HTTP-style method/path notation is used as a convention to describe operations.",
   "version": "1.0.0",
   "endpoints": {
     "submitScore": {

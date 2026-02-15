@@ -31,7 +31,8 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Load `.specify/memory/constitution.md` and derive gates from Principles I–V.
+[Document specific gate outcomes per principle for this feature]
 
 ## Project Structure
 

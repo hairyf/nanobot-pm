@@ -7,4 +7,3 @@ const __dirname = path.dirname(__filename)
 
 export const AGENTIC_X_PATH = path.resolve(__dirname, '..')
 export const USER_ROOT_PATH = process.cwd()
-export const WORKSPACE_PATH = path.resolve(USER_ROOT_PATH, 'workspace')

@@ -21,12 +21,6 @@ Usage notes:
 <available_skills>
 
 <skill>
-<name>bonfire</name>
-<description>Session context persistence for AI coding. Start/end sessions, create specs and docs, review work. Use for session management, "start session", "end session", implementation specs, documentation, code review, or questions about previous work, decisions, blockers, "last time", "what we decided".</description>
-<location>project</location>
-</skill>
-
-<skill>
 <name>pnpm</name>
 <description>Node.js package manager with strict dependency resolution. Use when running pnpm specific commands, configuring workspaces, or managing dependencies with catalogs, patches, or overrides.</description>
 <location>project</location>

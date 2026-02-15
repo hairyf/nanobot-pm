@@ -8,8 +8,6 @@ export default antfu(
     ignores: [
       '**/skills/**',
       '**/sources/**',
-      '.swarm/**',
-      'src',
     ],
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'off',

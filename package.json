@@ -1,6 +1,7 @@
 {
-  "name": "agentic-x-monorepo",
+  "name": "agentic-x",
   "type": "module",
+  "version": "0.0.0",
   "private": true,
   "packageManager": "pnpm@10.25.0",
   "description": "_description_",
@@ -14,9 +15,28 @@
   },
   "bugs": "https://github.com/hairyf/agentic-x/issues",
   "keywords": [],
+  "exports": {
+    ".": "./src/index.ts",
+    "./agents": "./src/agents/index.ts",
+    "./cli": "./src/cli/index.ts",
+    "./config": "./src/config/index.ts",
+    "./config/define": "./src/config/define.ts",
+    "./constants": "./src/constants/index.ts",
+    "./session": "./src/session/index.ts",
+    "./storage": "./src/storage/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./utils/x": "./src/utils/x.ts",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "bin": {
+    "agentic": "./bin/index.dev.mjs"
+  },
   "scripts": {
-    "build": "pnpm -r run build",
-    "dev": "pnpm -r run dev",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "lint": "eslint .",
     "prepublishOnly": "nr build",
     "release": "bumpp",
@@ -24,7 +44,15 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "typecheck": "pnpm -r run typecheck",
-    "prepare": "simple-git-hooks && skills-manifest install"
+    "prepare": "simple-git-hooks"
+  },
+  "dependencies": {
+    "@clack/prompts": "catalog:cli",
+    "@hairy/utils": "catalog:",
+    "c12": "catalog:",
+    "citty": "catalog:",
+    "pathe": "catalog:",
+    "unstorage": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:cli",
@@ -38,8 +66,6 @@
     "lint-staged": "catalog:cli",
     "publint": "catalog:cli",
     "simple-git-hooks": "catalog:cli",
-    "skills": "catalog:skills",
-    "skills-manifest": "catalog:skills",
     "tinyexec": "catalog:testing",
     "tsdown": "catalog:cli",
     "tsx": "catalog:cli",
@@ -54,5 +80,20 @@
   },
   "lint-staged": {
     "*": "eslint --fix"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": "./dist/index.mjs",
+      "./agents": "./dist/agents/index.mjs",
+      "./cli": "./dist/cli/index.mjs",
+      "./config": "./dist/config/index.mjs",
+      "./config/define": "./dist/config/define.mjs",
+      "./constants": "./dist/constants/index.mjs",
+      "./session": "./dist/session/index.mjs",
+      "./storage": "./dist/storage/index.mjs",
+      "./utils": "./dist/utils/index.mjs",
+      "./utils/x": "./dist/utils/x.mjs",
+      "./package.json": "./package.json"
+    }
   }
 }

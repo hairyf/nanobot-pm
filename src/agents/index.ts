@@ -25,6 +25,8 @@ export const claude: Agent = {
   // 系统内部对话
   reply: async (session: string, message: string) =>
     x('claude', ['-p', message, '-r', session], { nodeOptions: { stdio: 'inherit' } }),
+  clear: async (session: string) =>
+    x('claude', ['-r', session], { nodeOptions: { stdio: 'inherit' } }),
 }
 
 export const cursor: Agent = {
@@ -54,4 +56,6 @@ export const cursor: Agent = {
     x('agent', ['--resume', session, '--print', message], {
       nodeOptions: { stdio: 'inherit' },
     }),
+  clear: async (session: string) =>
+    x('agent', ['--delete', session], { nodeOptions: { stdio: 'inherit' } }),
 }

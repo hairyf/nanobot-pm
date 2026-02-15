@@ -1,0 +1,498 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Task Management API",
+  "description": "API contract for task management operations",
+  "version": "1.0.0",
+  "endpoints": {
+    "createTask": {
+      "method": "POST",
+      "path": "/tasks",
+      "description": "Create a new task",
+      "request": {
+        "type": "object",
+        "required": ["description", "type"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Task description"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["local", "downstream", "inquiry"],
+            "description": "Task type"
+          },
+          "parentTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Parent task ID (for downstream tasks)"
+          },
+          "timeout": {
+            "type": "number",
+            "minimum": 1000,
+            "maximum": 3600000,
+            "default": 1800000,
+            "description": "Timeout in milliseconds (default: 30 minutes)"
+          },
+          "maxRetries": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 3,
+            "description": "Maximum retry attempts"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Custom metadata"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task tags"
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Task created successfully",
+          "schema": {
+            "type": "object",
+            "required": ["id", "status", "createdAt"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Task ID"
+              },
+              "description": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["local", "downstream", "inquiry"]
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending"],
+                "description": "Initial status is always 'pending'"
+              },
+              "createdAt": {
+                "type": "number",
+                "description": "Creation timestamp"
+              },
+              "estimatedDuration": {
+                "type": "number",
+                "description": "Estimated duration in milliseconds"
+              }
+            }
+          }
+        },
+        "400": {
+          "description": "Invalid request",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        },
+        "500": {
+          "description": "Internal server error",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      }
+    },
+    "getTask": {
+      "method": "GET",
+      "path": "/tasks/:id",
+      "description": "Get task status and details",
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "required": true,
+            "description": "Task ID"
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Task details",
+          "schema": {
+            "$ref": "#/definitions/Task"
+          }
+        },
+        "404": {
+          "description": "Task not found",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      }
+    },
+    "listTasks": {
+      "method": "GET",
+      "path": "/tasks",
+      "description": "List tasks with optional filters",
+      "parameters": {
+        "query": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "waiting_user", "completed", "failed", "cancelled"],
+            "description": "Filter by status"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["local", "downstream", "inquiry"],
+            "description": "Filter by type"
+          },
+          "agentId": {
+            "type": "string",
+            "description": "Filter by assigned agent"
+          },
+          "parentTaskId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Filter by parent task"
+          },
+          "limit": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20,
+            "description": "Maximum number of results"
+          },
+          "offset": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0,
+            "description": "Offset for pagination"
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "List of tasks",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/Task"
+                }
+              },
+              "total": {
+                "type": "number",
+                "description": "Total number of tasks matching filters"
+              },
+              "limit": {
+                "type": "number"
+              },
+              "offset": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "cancelTask": {
+      "method": "DELETE",
+      "path": "/tasks/:id",
+      "description": "Cancel a task",
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "required": true,
+            "description": "Task ID"
+          }
+        },
+        "body": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string",
+              "description": "Cancellation reason"
+            }
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Task cancelled successfully",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["cancelled"]
+              },
+              "cancelledAt": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "404": {
+          "description": "Task not found",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        },
+        "409": {
+          "description": "Task cannot be cancelled (already completed or failed)",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      }
+    },
+    "getTaskHistory": {
+      "method": "GET",
+      "path": "/tasks/:id/history",
+      "description": "Get task execution history",
+      "parameters": {
+        "path": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "required": true,
+            "description": "Task ID"
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Task history",
+          "schema": {
+            "$ref": "#/definitions/TaskHistory"
+          }
+        },
+        "404": {
+          "description": "Task not found",
+          "schema": {
+            "$ref": "#/definitions/Error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Task": {
+      "type": "object",
+      "required": ["id", "description", "type", "status", "createdAt", "updatedAt"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["local", "downstream", "inquiry"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "waiting_user", "completed", "failed", "cancelled"]
+        },
+        "assignedAgent": {
+          "type": "string"
+        },
+        "parentTaskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "childTaskIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "depth": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "updatedAt": {
+          "type": "number"
+        },
+        "startedAt": {
+          "type": "number"
+        },
+        "completedAt": {
+          "type": "number"
+        },
+        "timeout": {
+          "type": "number"
+        },
+        "maxRetries": {
+          "type": "number"
+        },
+        "retryCount": {
+          "type": "number"
+        },
+        "metadata": {
+          "type": "object"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "TaskHistory": {
+      "type": "object",
+      "required": ["taskId", "events", "scores", "mediations", "statistics"],
+      "properties": {
+        "taskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TaskEvent"
+          }
+        },
+        "scores": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Score"
+          }
+        },
+        "mediations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Mediation"
+          }
+        },
+        "statistics": {
+          "$ref": "#/definitions/TaskStatistics"
+        }
+      }
+    },
+    "TaskEvent": {
+      "type": "object",
+      "required": ["type", "timestamp"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["created", "assigned", "started", "scored", "mediated", "user_query", "user_response", "completed", "failed", "cancelled", "retried"]
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      }
+    },
+    "Score": {
+      "type": "object",
+      "required": ["id", "taskId", "result", "feedback", "scoredAt"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "taskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "result": {
+          "type": "string",
+          "enum": ["pass", "reject"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "feedback": {
+          "type": "string"
+        },
+        "scoredAt": {
+          "type": "number"
+        }
+      }
+    },
+    "Mediation": {
+      "type": "object",
+      "required": ["id", "taskId", "diagnosis", "result", "triggeredAt"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "taskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "diagnosis": {
+          "type": "object"
+        },
+        "result": {
+          "type": "string",
+          "enum": ["success", "failed", "escalated"]
+        },
+        "triggeredAt": {
+          "type": "number"
+        }
+      }
+    },
+    "TaskStatistics": {
+      "type": "object",
+      "properties": {
+        "totalDuration": {
+          "type": "number"
+        },
+        "executionDuration": {
+          "type": "number"
+        },
+        "waitingDuration": {
+          "type": "number"
+        },
+        "retryCount": {
+          "type": "number"
+        },
+        "scoreCount": {
+          "type": "number"
+        },
+        "mediationCount": {
+          "type": "number"
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message"
+        },
+        "details": {
+          "type": "object",
+          "description": "Additional error details"
+        }
+      }
+    }
+  }
+}

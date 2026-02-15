@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Mediator API",
+  "description": "API contract for mediation operations",
+  "version": "1.0.0",
+  "endpoints": {
+    "triggerMediation": {
+      "method": "POST",
+      "path": "/mediations",
+      "description": "Trigger mediation for a task",
+      "request": {
+        "type": "object",
+        "required": ["taskId"],
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for mediation"
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Mediation triggered successfully",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "taskId": { "type": "string", "format": "uuid" },
+              "diagnosis": { "type": "object" },
+              "solutions": { "type": "array" },
+              "triggeredAt": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "getMediations": {
+      "method": "GET",
+      "path": "/mediations/:taskId",
+      "description": "Get all mediations for a task",
+      "response": {
+        "200": {
+          "description": "List of mediations",
+          "schema": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Mediation" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Mediation": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "taskId": { "type": "string", "format": "uuid" },
+        "diagnosis": { "type": "object" },
+        "result": { "type": "string", "enum": ["success", "failed", "escalated"] },
+        "triggeredAt": { "type": "number" }
+      }
+    }
+  }
+}

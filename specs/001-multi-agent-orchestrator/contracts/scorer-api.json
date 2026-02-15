@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Scorer API",
+  "description": "API contract for task scoring operations",
+  "version": "1.0.0",
+  "endpoints": {
+    "submitScore": {
+      "method": "POST",
+      "path": "/scores",
+      "description": "Submit a score for a task",
+      "request": {
+        "type": "object",
+        "required": ["taskId", "result", "feedback"],
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "type": "string",
+            "enum": ["pass", "reject"]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "feedback": {
+            "type": "string"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "weight": { "type": "number" },
+                "passed": { "type": "boolean" },
+                "reason": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "response": {
+        "200": {
+          "description": "Score submitted successfully",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "taskId": { "type": "string", "format": "uuid" },
+              "result": { "type": "string" },
+              "scoredAt": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "getScores": {
+      "method": "GET",
+      "path": "/scores/:taskId",
+      "description": "Get all scores for a task",
+      "response": {
+        "200": {
+          "description": "List of scores",
+          "schema": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Score" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Score": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "taskId": { "type": "string", "format": "uuid" },
+        "result": { "type": "string", "enum": ["pass", "reject"] },
+        "confidence": { "type": "number" },
+        "feedback": { "type": "string" },
+        "scoredAt": { "type": "number" }
+      }
+    }
+  }
+}

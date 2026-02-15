@@ -55,12 +55,21 @@ catalogs:
     citty:
       specifier: ^0.2.0
       version: 0.2.0
+    consola:
+      specifier: ^3.4.2
+      version: 3.4.2
+    hookable:
+      specifier: ^6.0.1
+      version: 6.0.1
     pathe:
       specifier: ^2.0.3
       version: 2.0.3
     unstorage:
       specifier: ^1.17.4
       version: 1.17.4
+    zod:
+      specifier: ^4.3.6
+      version: 4.3.6
   inlined:
     '@antfu/utils':
       specifier: ^9.3.0
@@ -99,12 +108,21 @@ importers:
       citty:
         specifier: 'catalog:'
         version: 0.2.0
+      consola:
+        specifier: 'catalog:'
+        version: 3.4.2
+      hookable:
+        specifier: 'catalog:'
+        version: 6.0.1
       pathe:
         specifier: 'catalog:'
         version: 2.0.3
       unstorage:
         specifier: 'catalog:'
         version: 1.17.4
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
     devDependencies:
       '@antfu/eslint-config':
         specifier: catalog:cli
@@ -1677,6 +1695,9 @@ packages:
   hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
 
+  hookable@6.0.1:
+    resolution: {integrity: sha512-uKGyY8BuzN/a5gvzvA+3FVWo0+wUjgtfSdnmjtrOVwQCZPHpHDH2WRO3VZSOeluYrHoDCiXFffZXs8Dj1ULWtw==}
+
   html-entities@2.6.0:
     resolution: {integrity: sha512-kig+rMn/QOVRvr7c86gQ8lWXq+Hkv6CbAH1hLu+RG338StTpE8Z0b44SDVaqVu7HGKf27frdmUYEs9hTUX/cLQ==}
 
@@ -2629,6 +2650,9 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -4050,6 +4074,8 @@ snapshots:
 
   hookable@5.5.3: {}
 
+  hookable@6.0.1: {}
+
   html-entities@2.6.0: {}
 
   html-escaper@2.0.2: {}
@@ -5112,5 +5138,7 @@ snapshots:
   yaml@2.8.2: {}
 
   yocto-queue@0.1.0: {}
+
+  zod@4.3.6: {}
 
   zwitch@2.0.4: {}

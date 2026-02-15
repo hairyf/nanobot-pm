@@ -51,8 +51,11 @@
     "@hairy/utils": "catalog:",
     "c12": "catalog:",
     "citty": "catalog:",
+    "consola": "catalog:",
+    "hookable": "catalog:",
     "pathe": "catalog:",
-    "unstorage": "catalog:"
+    "unstorage": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:cli",

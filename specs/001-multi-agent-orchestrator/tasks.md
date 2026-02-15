@@ -24,11 +24,11 @@
 
 **目的**: 项目初始化与基本结构搭建
 
-- [ ] T001 按照 plan.md 创建项目目录结构：src/{orchestrator,task,scorer,mediator,agents,storage,cli/commands,config,utils}/ 和 tests/{unit,integration,fixtures}/
-- [ ] T002 初始化 TypeScript 项目，包含 package.json 和 tsconfig.json，安装依赖：citty、unstorage、c12、hookable、pathe、consola、zod、vitest、tsdown
-- [ ] T003 [P] 在 eslint.config.ts 中配置 ESLint（使用 @antfu/eslint-config）
-- [ ] T004 [P] 在 vitest.config.ts 中配置 Vitest 的单元测试和集成测试
-- [ ] T005 [P] 在 tsdown.config.ts 中配置 tsdown 构建工具
+- [X] T001 按照 plan.md 创建项目目录结构：src/{orchestrator,task,scorer,mediator,agents,storage,cli/commands,config,utils}/ 和 tests/{unit,integration,fixtures}/
+- [X] T002 初始化 TypeScript 项目，包含 package.json 和 tsconfig.json，安装依赖：citty、unstorage、c12、hookable、pathe、consola、zod、vitest、tsdown
+- [X] T003 [P] 在 eslint.config.ts 中配置 ESLint（使用 @antfu/eslint-config）
+- [X] T004 [P] 在 vitest.config.ts 中配置 Vitest 的单元测试和集成测试
+- [X] T005 [P] 在 tsdown.config.ts 中配置 tsdown 构建工具
 
 ---
 
@@ -40,37 +40,37 @@
 
 ### 类型定义
 
-- [ ] T006 [P] 在 src/task/types.ts 中定义 Task、TaskType、TaskStatus、TaskResult、TaskError、TaskHistory、TaskEvent、TaskStatistics、UserQuery、QueryOption 类型
-- [ ] T007 [P] 在 src/scorer/types.ts 中定义 Score、ScoreResult、ScoreCriterion、ScoringRule 类型
-- [ ] T008 [P] 在 src/mediator/types.ts 中定义 Mediation、Diagnosis、ProblemType、Solution、SolutionType、MediationResult 类型
-- [ ] T009 [P] 在 src/agents/types.ts 中定义 Agent、AgentStatus、AgentConfig、RetryStrategy、AgentStatistics 类型
-- [ ] T010 [P] 在 src/orchestrator/types.ts 中定义 OrchestratorHooks、OrchestratorConfig（含 pollInterval 字段，默认 10 秒）、SessionBinding（sessionId、taskId、status、pollInterval、boundAt、lastActiveAt、disconnectedAt）、ReporterOptions 类型
-- [ ] T011 [P] 在 src/storage/types.ts 中定义 StorageConfig 和存储接口（TaskStoreInterface、HistoryStoreInterface）
+- [X] T006 [P] 在 src/task/types.ts 中定义 Task、TaskType、TaskStatus、TaskResult、TaskError、TaskHistory、TaskEvent、TaskStatistics、UserQuery、QueryOption 类型
+- [X] T007 [P] 在 src/scorer/types.ts 中定义 Score、ScoreResult、ScoreCriterion、ScoringRule 类型
+- [X] T008 [P] 在 src/mediator/types.ts 中定义 Mediation、Diagnosis、ProblemType、Solution、SolutionType、MediationResult 类型
+- [X] T009 [P] 在 src/agents/types.ts 中定义 Agent、AgentStatus、AgentConfig、RetryStrategy、AgentStatistics 类型
+- [X] T010 [P] 在 src/orchestrator/types.ts 中定义 OrchestratorHooks、OrchestratorConfig（含 pollInterval 字段，默认 10 秒）、SessionBinding（sessionId、taskId、status、pollInterval、boundAt、lastActiveAt、disconnectedAt）、ReporterOptions 类型
+- [X] T011 [P] 在 src/storage/types.ts 中定义 StorageConfig 和存储接口（TaskStoreInterface、HistoryStoreInterface）
 
 ### 配置系统
 
-- [ ] T012 在 src/config/schema.ts 中实现配置模式（orchestrator、scorer、mediator、storage、agents 各部分）
-- [ ] T013 [P] 在 src/config/define.ts 中实现类型安全的 defineConfig 辅助函数
-- [ ] T014 在 src/config/index.ts 中使用 c12 实现配置加载器（从 agentic.config.ts 加载、支持环境变量覆盖）
+- [X] T012 在 src/config/schema.ts 中实现配置模式（orchestrator、scorer、mediator、storage、agents 各部分）
+- [X] T013 [P] 在 src/config/define.ts 中实现类型安全的 defineConfig 辅助函数
+- [X] T014 在 src/config/index.ts 中使用 c12 实现配置加载器（从 agentic.config.ts 加载、支持环境变量覆盖）
 
 ### 存储层
 
-- [ ] T015 在 src/storage/index.ts 中使用 unstorage 实现存储工厂（fs 驱动、可配置基础路径）
-- [ ] T016 在 src/storage/task-store.ts 中实现 TaskStore（save、get、list、delete、updateStatus，按 status/agent/parent 索引）
-- [ ] T017 在 src/storage/history-store.ts 中实现 HistoryStore（appendEvent、getHistory、getStatistics、appendScore、appendMediation）
+- [X] T015 在 src/storage/index.ts 中使用 unstorage 实现存储工厂（fs 驱动、可配置基础路径）
+- [X] T016 在 src/storage/task-store.ts 中实现 TaskStore（save、get、list、delete、updateStatus，按 status/agent/parent 索引）
+- [X] T017 在 src/storage/history-store.ts 中实现 HistoryStore（appendEvent、getHistory、getStatistics、appendScore、appendMediation）
 
 ### 工具函数
 
-- [ ] T018 [P] 在 src/utils/logger.ts 中使用 consola 实现日志工具（debug、info、warn、error 级别），定义关键操作日志点辅助函数：任务创建（task:created）、Agent 分配（task:assigned）、评分提交（score:submitted）、调节触发（mediation:triggered）、任务完成（task:completed）、任务失败（task:failed），确保与 spec.md 可观测性要求对齐
-- [ ] T019 [P] 在 src/utils/timer.ts 中实现计时工具（createTimeout、createInterval、withTimeout 封装）
-- [ ] T020 [P] 在 src/utils/validator.ts 中实现验证工具（generateUUID、validateTaskInput、validateConfig）
-- [ ] T021 在 src/utils/index.ts 中实现工具函数入口点及重导出
+- [X] T018 [P] 在 src/utils/logger.ts 中使用 consola 实现日志工具（debug、info、warn、error 级别），定义关键操作日志点辅助函数：任务创建（task:created）、Agent 分配（task:assigned）、评分提交（score:submitted）、调节触发（mediation:triggered）、任务完成（task:completed）、任务失败（task:failed），确保与 spec.md 可观测性要求对齐
+- [X] T019 [P] 在 src/utils/timer.ts 中实现计时工具（createTimeout、createInterval、withTimeout 封装）
+- [X] T020 [P] 在 src/utils/validator.ts 中实现验证工具（generateUUID、validateTaskInput、validateConfig）
+- [X] T021 在 src/utils/index.ts 中实现工具函数入口点及重导出
 
 ### 基础层测试
 
-- [ ] T022 [P] 在 tests/unit/config/config.test.ts 中编写配置加载的单元测试
-- [ ] T023 [P] 在 tests/unit/storage/task-store.test.ts 中编写 TaskStore 的 CRUD 和索引单元测试
-- [ ] T024 [P] 在 tests/unit/storage/history-store.test.ts 中编写 HistoryStore 事件追加的单元测试
+- [X] T022 [P] 在 tests/unit/config/config.test.ts 中编写配置加载的单元测试
+- [X] T023 [P] 在 tests/unit/storage/task-store.test.ts 中编写 TaskStore 的 CRUD 和索引单元测试
+- [X] T024 [P] 在 tests/unit/storage/history-store.test.ts 中编写 HistoryStore 事件追加的单元测试
 
 **检查点**: 基础层就绪——可以开始用户故事的实现
 

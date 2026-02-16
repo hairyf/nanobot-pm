@@ -19,10 +19,7 @@ describe('config', () => {
         maxDepth: 10,
         memoryThreshold: 500 * 1024 * 1024,
       })
-      expect(config.scorer).toEqual({
-        autoScore: false,
-        scoreThreshold: 0.8,
-      })
+      expect(config.scorer).toEqual({})
       expect(config.mediator).toEqual({
         triggerThreshold: 3,
         enableCBR: true,

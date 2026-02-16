@@ -8,10 +8,7 @@ export default defineConfig({
     maxRetries: 3,
     pollInterval: 10000,
   },
-  scorer: {
-    autoScore: true,
-    scoreThreshold: 0.8,
-  },
+  scorer: {},
   mediator: {
     triggerThreshold: 3,
     enableCBR: true,

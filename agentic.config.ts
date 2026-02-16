@@ -10,8 +10,6 @@ export default defineConfig({
   },
   scorer: {
     agentId: 'scorer',
-    autoScore: true,
-    scoreThreshold: 0.8,
   },
   mediator: {
     triggerThreshold: 3,

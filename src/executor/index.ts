@@ -1,3 +1,5 @@
-export { MockExecutor } from './mock'
-export { buildAgentPrompt } from './prompt-builder'
-export type { AgentExecutor, ExecutionHandle, ExecutionResult, ExecutionStatus, LaunchOptions } from './types'
+/**
+ * @deprecated Use imports from '../agents/prompt-builder' instead.
+ * This module is deprecated and will be removed in a future version.
+ */
+export { buildAgentPrompt } from '../agents/prompt-builder'

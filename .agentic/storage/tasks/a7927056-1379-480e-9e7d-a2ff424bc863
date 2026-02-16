@@ -1,1 +1,0 @@
-{"id":"a7927056-1379-480e-9e7d-a2ff424bc863","description":"创建一个 README","type":"local","status":"completed","childTaskIds":[],"depth":0,"createdAt":1771206810342,"updatedAt":1771206822569,"timeout":1800000,"maxRetries":3,"retryCount":0,"metadata":{"executionId":"mock_1","executionUrl":"https://mock.executor/mock_1","executorType":"mock"},"tags":[],"assignedAgent":"developer"}

@@ -21,14 +21,25 @@ describe('task flow integration', () => {
     orchestrator.registry.register(agent)
   })
 
-  it('submits and processes a task to completion', async () => {
+  it('submits a task and delegates to external agent (stays running)', async () => {
     const taskId = await orchestrator.submitTask('Write typescript code')
 
     await new Promise(resolve => setTimeout(resolve, 50))
 
     const task = await orchestrator.taskManager.getTask(taskId)
     expect(task).toBeDefined()
-    expect(task?.status).toBe('completed')
+    expect(task?.status).toBe('running')
+  })
+
+  it('stores prompt and delegated flag in task metadata', async () => {
+    const taskId = await orchestrator.submitTask('Write typescript code')
+
+    await new Promise(resolve => setTimeout(resolve, 50))
+
+    const task = await orchestrator.taskManager.getTask(taskId)
+    expect(task?.metadata?.delegated).toBe(true)
+    expect(task?.metadata?.prompt).toBeDefined()
+    expect(task?.metadata?.prompt).toContain('Write typescript code')
   })
 
   it('creates task with correct type classification', async () => {

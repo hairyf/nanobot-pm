@@ -1,7 +1,7 @@
 import type { TaskAgent } from '../../../src/agents/types'
 import type { Task } from '../../../src/task/types'
 import { describe, expect, it } from 'vitest'
-import { buildAgentPrompt } from '../../../src/executor/prompt-builder'
+import { buildAgentPrompt } from '../../../src/agents/prompt-builder'
 
 function createMockAgent(overrides?: Partial<TaskAgent>): TaskAgent {
   return {

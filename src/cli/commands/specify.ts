@@ -1,6 +1,5 @@
 import process from 'node:process'
 import { defineCommand } from 'citty'
-import { buildAgentPrompt } from '../../executor/prompt-builder'
 import { logger } from '../../utils/logger'
 import { validateTaskInput } from '../../utils/validator'
 import { createCliContext } from '../helpers'
@@ -9,7 +8,7 @@ import { outputJson } from '../utils'
 export const specifyCommand = defineCommand({
   meta: {
     name: 'specify',
-    description: 'Register a task, assign an agent, and start internal processing',
+    description: 'Register a task, assign an agent, and delegate to external agent',
   },
   args: {
     agentId: {
@@ -43,18 +42,16 @@ export const specifyCommand = defineCommand({
       process.exit(1)
     }
 
-    // Use Orchestrator's internal submitTask with pre-assigned agent
-    // This triggers: scheduler → assign → executeTask (agent function)
+    // Submit task: triggers classify → assign → executeTask (builds prompt, marks delegated)
     const taskId = await orchestrator.submitTask(description, { agentId })
 
-    // Build prompt for sub-agent reference
-    const task = await orchestrator.taskManager.getTask(taskId)
-    const prompt = buildAgentPrompt(agent, task!)
+    // Wait for processTask to finish delegation (or fail) before reading status
+    await orchestrator.waitForProcessing(taskId)
 
-    // Store prompt in task metadata
-    await orchestrator.taskManager.updateMetadata(taskId, {
-      agentPrompt: prompt,
-    })
+    // Read back task with prompt and sessionId stored in metadata by executeTask
+    const task = await orchestrator.taskManager.getTask(taskId)
+    const prompt = (task?.metadata?.prompt as string) ?? ''
+    const sessionId = (task?.metadata?.sessionId as string) ?? undefined
 
     outputJson({
       success: true,
@@ -63,7 +60,8 @@ export const specifyCommand = defineCommand({
         agentId,
         description,
         type: task?.type ?? 'local',
-        status: task?.status ?? 'completed',
+        status: task?.status ?? 'unknown',
+        ...(sessionId && { sessionId }),
         prompt,
       },
     })

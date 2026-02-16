@@ -19,6 +19,7 @@ export type RetryStrategy = z.infer<typeof RetryStrategySchema>
 export const AgentConfigSchema = z.object({
   maxConcurrentTasks: z.number(),
   timeout: z.number(),
+  description: z.string().optional(),
   retryStrategy: RetryStrategySchema,
 })
 export type AgentConfig = z.infer<typeof AgentConfigSchema>

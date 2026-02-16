@@ -1,17 +1,17 @@
-// Session module - to be expanded in US1 with SessionBinding support
-// Legacy session adapter functionality preserved for backward compatibility
+import type { Agent } from '../config/define'
 
-export interface SessionAdapter {
-  fresh: (system: string) => Promise<string>
-  start: (session: string) => Promise<unknown>
-  reply: (session: string, message: string) => Promise<unknown>
-  clear: (session: string) => Promise<unknown>
-}
+/**
+ * @deprecated Use `Agent` from `../config/define` instead.
+ */
+export type SessionAdapter = Agent
 
-export function createSession(adapter: SessionAdapter) {
+export function createSession(adapter: Agent) {
   return {
     async start(system: string) {
       return adapter.fresh(system)
+    },
+    async launch(system: string, prompt: string, options?: { logFile?: string }) {
+      return adapter.launch(system, prompt, options)
     },
     async reply(session: string, message: string) {
       return adapter.reply(session, message)

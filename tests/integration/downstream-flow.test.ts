@@ -90,7 +90,7 @@ describe('downstream Task Delegation Flow (T057)', () => {
     }
   })
 
-  it('collects results from child tasks', async () => {
+  it('child tasks are delegated with prompt and metadata', async () => {
     const parentTaskId = await orchestrator.submitTask('Build application components', {
       parentTaskId: undefined,
       depth: 0,
@@ -101,60 +101,62 @@ describe('downstream Task Delegation Flow (T057)', () => {
     const childTasks = await orchestrator.taskManager.getChildTasks(parentTaskId)
     expect(childTasks.length).toBeGreaterThan(0)
 
-    // Wait for all child tasks to complete
-    let allCompleted = false
+    // Wait for child tasks to be processed (delegated)
+    let allDelegated = false
     let attempts = 0
-    while (!allCompleted && attempts < 20) {
+    while (!allDelegated && attempts < 20) {
       await new Promise(resolve => setTimeout(resolve, 50))
       const updatedChildren = await orchestrator.taskManager.getChildTasks(parentTaskId)
-      allCompleted = updatedChildren.every(task => task.status === 'completed' || task.status === 'failed')
+      allDelegated = updatedChildren.every(task => task.status === 'running' && task.metadata?.delegated === true)
       attempts++
     }
 
-    // Verify child tasks have results
-    const completedChildren = await orchestrator.taskManager.getChildTasks(parentTaskId)
-    for (const child of completedChildren) {
-      expect(['completed', 'failed']).toContain(child.status)
+    // Verify child tasks are delegated with prompt
+    const delegatedChildren = await orchestrator.taskManager.getChildTasks(parentTaskId)
+    for (const child of delegatedChildren) {
+      expect(child.status).toBe('running')
+      expect(child.metadata?.delegated).toBe(true)
+      expect(child.metadata?.prompt).toBeDefined()
     }
 
-    // Verify parent task can access child results
-    // This assumes the orchestrator aggregates results
+    // Verify parent task still exists and tracks children
     const parentTask = await orchestrator.taskManager.getTask(parentTaskId)
     expect(parentTask).toBeDefined()
   })
 
-  it('parent task completes when all children complete', async () => {
+  it('parent task stays running while delegated children are pending completion', async () => {
     const parentTaskId = await orchestrator.submitTask('Complete multi-component project', {
       parentTaskId: undefined,
       depth: 0,
     })
 
     // Wait for processing
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 200))
 
     const childTasks = await orchestrator.taskManager.getChildTasks(parentTaskId)
     expect(childTasks.length).toBeGreaterThan(0)
 
-    // Wait for all children to complete
-    let allChildrenCompleted = false
+    // Wait for children to be delegated
+    let allDelegated = false
     let attempts = 0
-    while (!allChildrenCompleted && attempts < 30) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+    while (!allDelegated && attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 50))
       const updatedChildren = await orchestrator.taskManager.getChildTasks(parentTaskId)
-      allChildrenCompleted = updatedChildren.every(task => task.status === 'completed' || task.status === 'failed')
+      allDelegated = updatedChildren.every(task => task.status === 'running')
       attempts++
     }
 
-    expect(allChildrenCompleted).toBe(true)
+    // All child tasks should be running (delegated to external agents)
+    const updatedChildren = await orchestrator.taskManager.getChildTasks(parentTaskId)
+    for (const child of updatedChildren) {
+      expect(child.status).toBe('running')
+      expect(child.metadata?.delegated).toBe(true)
+    }
 
-    // Wait a bit more for parent to process child completions
-    await new Promise(resolve => setTimeout(resolve, 150))
-
-    // Verify parent task eventually completes
+    // Parent task should still be running (waiting for child completions via `complete` command)
     const parentTask = await orchestrator.taskManager.getTask(parentTaskId)
     expect(parentTask).toBeDefined()
-    // Parent should be completed or in a state that indicates it's processing children
-    expect(['completed', 'running', 'waiting_user']).toContain(parentTask?.status)
+    expect(parentTask?.status).toBe('running')
   })
 
   it('handles nested downstream tasks (child tasks creating their own children)', async () => {

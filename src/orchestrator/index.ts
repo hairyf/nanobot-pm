@@ -1,4 +1,5 @@
 import type { Storage } from 'unstorage'
+import type { Agent } from '../config/define'
 import type { AppConfig } from '../config/schema'
 import type { QueryOption } from '../task/types'
 import type { OrchestratorHooks } from './types'
@@ -20,6 +21,8 @@ import { Scheduler } from './scheduler'
 export interface OrchestratorOptions {
   config: AppConfig
   storage: Storage
+  /** Platform adapter (cursor/claude) for launching real AI sessions. Optional for tests. */
+  platform?: Agent
 }
 
 export class Orchestrator {
@@ -34,9 +37,13 @@ export class Orchestrator {
 
   private taskStore: TaskStore
   private config: AppConfig
+  private platform?: Agent
+  /** Tracks in-flight processTask promises so callers can await completion. */
+  private processingPromises = new Map<string, Promise<void>>()
 
   constructor(options: OrchestratorOptions) {
     this.config = options.config
+    this.platform = options.platform
     this.taskStore = new TaskStore(options.storage)
     this.historyStore = new HistoryStore(options.storage)
     this.taskManager = new TaskManager(this.taskStore, this.historyStore)
@@ -83,12 +90,26 @@ export class Orchestrator {
 
     this.taskQueue.markRunning(task.id)
 
-    this.processTask(task.id)
+    const promise = this.processTask(task.id)
       .catch(err => logger.error('Task processing error', err))
       .finally(() => {
+        this.processingPromises.delete(task.id)
         this.taskQueue.markDone(task.id)
         this.processQueue()
       })
+
+    this.processingPromises.set(task.id, promise)
+  }
+
+  /**
+   * Wait for a task's processing to complete (delegation, scoring, or failure).
+   * Resolves immediately if the task is not currently being processed.
+   */
+  async waitForProcessing(taskId: string): Promise<void> {
+    const promise = this.processingPromises.get(taskId)
+    if (promise) {
+      await promise
+    }
   }
 
   async processTask(taskId: string): Promise<void> {
@@ -130,7 +151,25 @@ export class Orchestrator {
       await this.hooks.callHook('task:started', runningTask)
 
     try {
-      const result = await executeTask(agent, updatedTask, { timeout: this.config.orchestrator.defaultTimeout })
+      const result = await executeTask(agent, updatedTask, {
+        timeout: this.config.orchestrator.defaultTimeout,
+        platform: this.platform,
+        basePath: this.config.storage.basePath,
+      })
+
+      // Store execution result (prompt, delegation info) in task metadata
+      const resultMeta: Record<string, unknown> = { ...result.metadata }
+      const output = result.output as Record<string, unknown> | undefined
+      if (output?.prompt) {
+        resultMeta.prompt = output.prompt
+      }
+      await this.taskManager.updateMetadata(taskId, resultMeta)
+
+      // If task was delegated to an external agent, keep it in "running" state.
+      // The external agent will report completion via the `complete` command.
+      if (result.metadata?.delegated) {
+        return
+      }
 
       const scorerConfig = {
         scoreThreshold: this.config.scorer.scoreThreshold,

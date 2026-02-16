@@ -1,4 +1,7 @@
 import { defineCommand } from 'citty'
+import { join } from 'pathe'
+import { syncTranscriptToLog } from '../../agents/transcript-sync'
+import { UserQueryManager } from '../../task/user-query'
 import { createCliContext } from '../helpers'
 import { formatDuration, formatStatus, formatTable, outputJson } from '../utils'
 
@@ -23,7 +26,7 @@ export const statusCommand = defineCommand({
     const taskId = args.taskId as string | undefined
     const jsonMode = args.json as boolean | undefined
 
-    const { taskStore, historyStore } = await createCliContext()
+    const { config, storage, taskStore, historyStore } = await createCliContext()
 
     if (taskId) {
       const task = await taskStore.get(taskId)
@@ -32,7 +35,31 @@ export const statusCommand = defineCommand({
         return
       }
 
+      // Auto-sync transcript → log file for delegated (running) tasks
+      const sessionId = task.metadata?.sessionId as string | undefined
+      let transcriptSynced = 0
+      if (sessionId) {
+        const logFile = join(config.storage.basePath, 'logs', `${task.id}.log`)
+        transcriptSynced = syncTranscriptToLog(sessionId, logFile)
+      }
+
       const history = await historyStore.getHistory(taskId)
+
+      // If task is waiting_user, include the pending query
+      let pendingQuery
+      if (task.status === 'waiting_user') {
+        const queryManager = new UserQueryManager(storage)
+        const query = await queryManager.getQueryByTask(taskId)
+        if (query) {
+          pendingQuery = {
+            queryId: query.id,
+            question: query.question,
+            options: query.options,
+            context: query.context,
+            createdAt: query.createdAt,
+          }
+        }
+      }
 
       if (jsonMode) {
         outputJson({
@@ -53,6 +80,8 @@ export const statusCommand = defineCommand({
             },
             events: history?.events || [],
             scores: history?.scores || [],
+            ...(transcriptSynced > 0 && { transcriptSynced }),
+            ...(pendingQuery && { pendingQuery }),
           },
         })
       }
@@ -66,6 +95,12 @@ export const statusCommand = defineCommand({
         console.log(`Created: ${new Date(task.createdAt).toLocaleString()}`)
         console.log(`Elapsed: ${formatDuration(elapsed)}`)
         console.log(`Retries: ${task.retryCount}/${task.maxRetries}`)
+        if (sessionId) {
+          console.log(`Session: ${sessionId}`)
+        }
+        if (transcriptSynced > 0) {
+          console.log(`Transcript: ${transcriptSynced} new entries synced to log`)
+        }
 
         if (history?.events && history.events.length > 0) {
           console.log(`\nEvents (${history.events.length}):`)

@@ -53,10 +53,9 @@ export default defineConfig({
     pollInterval: 10000, // 进度轮询间隔（毫秒），默认 10 秒
   },
 
-  // 评分配置
+  // 评分配置（配置 agentId 启用 AI Agent 评分，不配置则跳过评分）
   scorer: {
-    autoScore: true, // 自动评分
-    scoreThreshold: 0.8, // 评分阈值
+    agentId: 'scorer', // 评分 Agent ID（对应 .cursor/agents/scorer.md 的 name）
   },
 
   // 调节配置
@@ -116,68 +115,66 @@ export default defineConfig({
 ### 方式 1：使用 CLI 命令
 
 ```bash
-# 创建任务
-agentic specify "创建一个用户认证模块"
+# 创建任务（需指定 agentId 和任务描述）
+agentic specify agent-dev-001 "创建一个用户认证模块"
 
-# 输出示例：
-# ✓ 任务已创建
-# ID: 550e8400-e29b-41d4-a716-446655440000
-# 类型: local
-# 状态: pending
-# 预计时长: 30 分钟
+# 输出示例（JSON）：
+# {
+#   "taskId": "550e8400-e29b-41d4-a716-446655440000",
+#   "status": "running",
+#   "assignedAgent": "agent-dev-001",
+#   "sessionId": "abc123",
+#   "promptFile": ".agentic/prompts/550e8400-...md"
+# }
+
+# 阻塞等待任务完成：
+agentic wait 550e8400-e29b-41d4-a716-446655440000
 ```
 
 ### 方式 2：在 AI Agents 环境中使用（推荐）
 
-在 Cursor 或 Claude Code 中，执行 `/agentic.specify` 后，**AI 会话将保持活跃**，自动轮询进度直到任务完成。整个流程在同一个会话中完成：
+在 Cursor 或 Claude Code 中，执行 `/agentic.specify` 命令。系统自动选择合适的 Agent、提交任务、委派给外部 AI 会话执行，并通过 `agentic wait` 阻塞等待结果：
 
 ```
 用户: /agentic.specify 创建一个用户认证模块
 
-系统: ✓ 任务已创建
+系统: ✓ 任务已创建并委派给外部 AI 会话
       ID: 550e8400-e29b-41d4-a716-446655440000
-      类型: local
       分配给: agent-dev-001 (开发 Agent)
-      开始执行...
+      Prompt 文件: .agentic/prompts/550e8400-...md
+      Session ID: abc123
 
-系统: [20:15:10] ⏳ running | 正在分析需求... | 已用时间: 10s
-系统: [20:15:20] ⏳ running | 正在生成代码结构... | 已用时间: 20s
-系统: [20:15:30] ⏳ running | 正在实现认证逻辑... | 已用时间: 30s
+      正在等待任务完成...
 
-系统: [20:15:40] ⚠️ 需要您的输入
+系统: [阻塞等待中] 状态: running | 已用时间: 30s
+系统: [阻塞等待中] 状态: running | 已用时间: 1m
+
+系统: [阻塞等待中] 状态: waiting_user
+      ⚠️ Agent 需要您的输入
       问题: 选择密码哈希算法
       选项:
-        A. bcrypt (推荐，安全性高)
-        B. argon2 (更现代，性能好)
-        C. scrypt (内存硬函数)
+        1. bcrypt
+        2. argon2
 
-用户: A
+用户: agentic respond 550e8400-... --answer "option-bcrypt"
 
-系统: ✓ 已收到响应，继续执行...
-系统: [20:15:50] ⏳ running | 正在集成 bcrypt... | 已用时间: 50s
-系统: [20:16:00] ⏳ scoring | 评分中...
+系统: ✓ 已收到响应，继续等待...
 
-系统: [20:16:05] ❌ 评分驳回 (1/3)
-      反馈: 缺少单元测试
-      重新执行中...
+系统: [阻塞等待中] 状态: waiting_eval | 评分中...
+系统: [阻塞等待中] 状态: running | Scorer 驳回，Agent 重试中 (1/3)...
+系统: [阻塞等待中] 状态: waiting_eval | 再次评分中...
 
-系统: [20:16:15] ⏳ running | 正在补充测试... | 已用时间: 1m 15s
-系统: [20:16:25] ⏳ scoring | 评分中...
-
-系统: [20:16:30] ✅ 评分通过！
-      任务完成
+系统: ✅ 任务完成
       结果: 已写入 src/auth/ (4 个文件)
       总时长: 1 分 30 秒
       评分: 2 次 (1 驳回 → 1 通过)
-
-[会话结束]
 ```
 
 **关键行为**:
-- 会话自动保持活跃，无需手动执行 status 命令
-- 每 10 秒（可配置）自动输出进度更新
-- 需要用户输入时，直接在当前会话中提问
-- 任务完成/失败/取消后，会话自动结束
+- `agentic specify` 提交任务并返回 JSON（taskId/sessionId/promptFile）
+- `agentic wait` 阻塞等待直到终态（completed/failed/cancelled）或 waiting_user
+- 外部 Agent 通过 `agentic complete` 报告完成，系统自动启动 Scorer Agent 评分
+- 任务在后台运行，不受会话生命周期影响
 
 ## 查询任务状态（断线重连）
 
@@ -188,7 +185,6 @@ agentic specify "创建一个用户认证模块"
 
 系统: 任务 ID: 550e8400-e29b-41d4-a716-446655440000
       描述: 创建一个用户认证模块
-      类型: local
       状态: running
       分配的 Agent: agent-dev-001
       进度: 60%
@@ -390,51 +386,45 @@ agentic cancel --help
 
 ## 示例场景
 
-### 场景 1：简单任务（单个 Agent）
+### 场景 1：简单任务（单个 Agent，CLI 模式）
 
 ```bash
-# 创建任务
-agentic specify "生成一个 README 文件"
+# 创建任务（指定 agentId）
+agentic specify agent-doc-001 "生成一个 README 文件"
 
 # 系统自动：
-# 1. 判断为本职任务
-# 2. 分配给文档 Agent
-# 3. 执行任务
-# 4. 评分通过
-# 5. 返回结果
+# 1. 分配给文档 Agent
+# 3. 写入 prompt 文件，委派给外部 AI 会话
+# 4. Agent 完成后调用 agentic complete
+# 5. 配置了 scorer.agentId 时触发 Scorer Agent 评分
+# 6. 评分通过后标记为 completed
+
+# 阻塞等待结果
+agentic wait <taskId>
 ```
 
-### 场景 2：复杂任务（多个 Agent 协作）
+### 场景 2：在 AI 环境中使用（推荐）
 
-```bash
-# 创建任务
-agentic specify "创建一个带有数据库和 API 的 Web 应用"
+```
+用户: /agentic.specify 创建一个带有数据库和 API 的 Web 应用
 
-# 系统自动：
-# 1. 判断为下游任务
-# 2. 创建子任务：
-#    - 数据库设计 → 数据库 Agent
-#    - 后端开发 → 后端 Agent
-#    - 前端开发 → 前端 Agent
-# 3. 并行执行子任务
-# 4. 评分各子任务
-# 5. 汇总结果
-# 6. 返回完整应用
+# 系统自动选择 agent，提交任务并 wait：
+# 1. 为每个 agent 专长创建子任务（如需要）
+# 3. 各子任务委派给外部 AI 会话
+# 4. 子任务各自 complete → score
+# 5. 全部完成后聚合结果
 ```
 
 ### 场景 3：需要用户输入的任务
 
 ```bash
-# 创建任务
-agentic specify "选择技术栈并创建项目"
+# Agent 提问时：
+agentic ask <taskId> --question "选择技术栈: React 或 Vue?"
 
-# 系统自动：
-# 1. 判断为询问任务
-# 2. 向用户询问技术栈选择
-# 3. 等待用户响应
-# 4. 根据用户选择创建项目
-# 5. 评分通过
-# 6. 返回结果
+# 用户回答：
+agentic respond <taskId> --answer "option-react"
+
+# 系统自动恢复任务执行
 ```
 
 ## 性能优化建议

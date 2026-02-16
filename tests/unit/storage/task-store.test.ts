@@ -2,14 +2,13 @@ import type { Task } from '../../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { TaskStore } from '../../../src/storage/task-store'
+import { TaskStore } from '../../../src/storage/task'
 import { generateUUID } from '../../../src/utils/validator'
 
 function createTestTask(overrides: Partial<Task> = {}): Task {
   return {
     id: generateUUID(),
     description: 'Test task',
-    type: 'local',
     status: 'pending',
     childTaskIds: [],
     depth: 0,

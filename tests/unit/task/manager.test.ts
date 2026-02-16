@@ -1,8 +1,8 @@
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { HistoryStore } from '../../../src/storage/history-store'
-import { TaskStore } from '../../../src/storage/task-store'
+import { HistoryStore } from '../../../src/storage/history'
+import { TaskStore } from '../../../src/storage/task'
 import { TaskManager } from '../../../src/task/manager'
 
 describe('taskManager FSM', () => {
@@ -18,10 +18,9 @@ describe('taskManager FSM', () => {
   })
 
   it('creates a task with correct defaults', async () => {
-    const task = await manager.createTask({ description: 'Fix bug', type: 'local' })
+    const task = await manager.createTask({ description: 'Fix bug' })
     expect(task.id).toBeDefined()
     expect(task.description).toBe('Fix bug')
-    expect(task.type).toBe('local')
     expect(task.status).toBe('pending')
     expect(task.childTaskIds).toEqual([])
     expect(task.depth).toBe(0)
@@ -55,7 +54,7 @@ describe('taskManager FSM', () => {
   })
 
   it('transitionStatus updates task status', async () => {
-    const task = await manager.createTask({ description: 'Run', type: 'local' })
+    const task = await manager.createTask({ description: 'Run' })
     const running = await manager.transitionStatus(task.id, 'running')
     expect(running.status).toBe('running')
     const completed = await manager.transitionStatus(task.id, 'completed')
@@ -63,13 +62,13 @@ describe('taskManager FSM', () => {
   })
 
   it('transitionStatus throws for invalid transitions', async () => {
-    const task = await manager.createTask({ description: 'Run', type: 'local' })
+    const task = await manager.createTask({ description: 'Run' })
     await manager.transitionStatus(task.id, 'running')
     await expect(manager.transitionStatus(task.id, 'pending')).rejects.toThrow(/Invalid transition/)
   })
 
   it('supports full waiting_eval flow (running→waiting_eval→completed or running)', async () => {
-    const task = await manager.createTask({ description: 'Eval flow', type: 'local' })
+    const task = await manager.createTask({ description: 'Eval flow' })
     await manager.transitionStatus(task.id, 'running')
     // Agent completes -> waiting_eval
     const evalTask = await manager.transitionStatus(task.id, 'waiting_eval')
@@ -79,7 +78,7 @@ describe('taskManager FSM', () => {
     expect(completed.status).toBe('completed')
 
     // Test reject path: waiting_eval -> running (retry)
-    const task2 = await manager.createTask({ description: 'Eval retry', type: 'local' })
+    const task2 = await manager.createTask({ description: 'Eval retry' })
     await manager.transitionStatus(task2.id, 'running')
     await manager.transitionStatus(task2.id, 'waiting_eval')
     const retried = await manager.transitionStatus(task2.id, 'running')
@@ -87,7 +86,7 @@ describe('taskManager FSM', () => {
   })
 
   it('incrementRetry updates retry count and appends event', async () => {
-    const task = await manager.createTask({ description: 'Retry me', type: 'local' })
+    const task = await manager.createTask({ description: 'Retry me' })
     const updated = await manager.incrementRetry(task.id)
     expect(updated.retryCount).toBe(1)
     const history = await historyStore.getHistory(task.id)

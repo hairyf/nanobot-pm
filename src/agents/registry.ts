@@ -11,10 +11,6 @@ export class AgentRegistry {
     return this.agents.delete(id)
   }
 
-  get(id: string): TaskAgent | undefined {
-    return this.agents.get(id)
-  }
-
   getById(id: string): TaskAgent | undefined {
     return this.agents.get(id)
   }

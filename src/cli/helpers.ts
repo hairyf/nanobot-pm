@@ -7,10 +7,10 @@ import { loadAgents } from '../agents/loader'
 import { resolveConfig } from '../config'
 import { Orchestrator } from '../orchestrator'
 import { createStorageInstance } from '../storage'
-import { HistoryStore } from '../storage/history-store'
-import { TaskStore } from '../storage/task-store'
+import { HistoryStore } from '../storage/history'
+import { TaskStore } from '../storage/task'
+import { AskManager } from '../task/ask'
 import { TaskManager } from '../task/manager'
-import { UserQueryManager } from '../task/user-query'
 import { logger } from '../utils/logger'
 
 const platformAdapters: Record<string, Agent> = { cursor, claude }
@@ -21,7 +21,7 @@ export interface CliContext {
   taskStore: TaskStore
   historyStore: HistoryStore
   taskManager: TaskManager
-  queryManager: UserQueryManager
+  queryManager: AskManager
   agents: TaskAgent[]
   orchestrator: Orchestrator
 }
@@ -32,7 +32,7 @@ export async function createCliContext(): Promise<CliContext> {
   const taskStore = new TaskStore(storage)
   const historyStore = new HistoryStore(storage)
   const taskManager = new TaskManager(taskStore, historyStore)
-  const queryManager = new UserQueryManager(storage)
+  const queryManager = new AskManager(storage)
   const agents = await loadAgents(config.agents.directories)
 
   // Resolve platform adapter from config

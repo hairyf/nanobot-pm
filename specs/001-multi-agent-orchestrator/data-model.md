@@ -15,7 +15,7 @@ interface Task {
   // 基本信息
   id: string // UUID，任务唯一标识
   description: string // 任务描述
-  type: TaskType // 任务类型
+  // ~~type: TaskType~~ // ~~任务类型~~（已移除：任务类型分类功能已删除）
   status: TaskStatus // 当前状态
 
   // Agent 信息
@@ -43,17 +43,12 @@ interface Task {
   tags: string[] // 标签
 }
 
-// 任务类型
-type TaskType
-  = | 'local' // 本职任务：由当前 Agent 直接处理
-    | 'downstream' // 下游任务：需要委派给其他 Agent
-    | 'inquiry' // 询问任务：需要用户输入
-
 // 任务状态
 type TaskStatus
   = | 'pending' // 等待执行
     | 'running' // 执行中
     | 'waiting_user' // 等待用户输入
+    | 'waiting_eval' // 等待 AI Agent 评分
     | 'completed' // 已完成
     | 'failed' // 失败
     | 'cancelled' // 已取消
@@ -112,8 +107,8 @@ interface Score {
   suggestions: string[] // 改进建议
 
   // 评分者信息
-  scorerId: string // 评分者 ID
-  scorerType: 'rule' | 'heuristic' | 'manual' // 评分类型
+  scorerId: string // 评分者 ID（即 scorer.agentId）
+  scorerType: 'agent' // 评分类型（仅支持 AI Agent 评分）
 
   // 时间信息
   scoredAt: number // 评分时间戳
@@ -241,7 +236,7 @@ type TaskEvent
 // 创建任务数据
 interface CreateTaskData {
   description: string
-  type: TaskType
+  // ~~type: TaskType~~（已移除）
   parentTaskId?: string
   metadata?: Record<string, any>
 }
@@ -299,7 +294,7 @@ interface QueryOption {
 
 ### 7. Agent（代理）
 
-执行任务的智能体。Agent 与编排器运行在同一 Node.js 进程中（in-process），通过函数调用通信，不使用 IPC 或 HTTP。
+执行任务的智能体。编排器（Orchestrator）管理任务状态和 Agent 调度（in-process）。Agent 执行采用平台委派模型：executor 构建 prompt 写入文件后通过平台适配器（cursor/claude CLI）启动外部 AI 会话，外部 agent 通过 CLI 命令与编排器交互。
 
 ```typescript
 interface Agent {
@@ -446,36 +441,17 @@ const task: Task = {
   tags: ['auth', 'backend']
 }
 
-// 评分示例
+// 评分示例（AI Agent 评分）
 const score: Score = {
   id: '660e8400-e29b-41d4-a716-446655440001',
   taskId: '550e8400-e29b-41d4-a716-446655440000',
   result: 'pass',
-  confidence: 0.95,
-  feedback: '代码质量良好，测试覆盖率达标',
-  criteria: [
-    {
-      name: 'code_quality',
-      weight: 0.4,
-      passed: true,
-      reason: '符合编码规范'
-    },
-    {
-      name: 'test_coverage',
-      weight: 0.3,
-      passed: true,
-      reason: '覆盖率 85%'
-    },
-    {
-      name: 'documentation',
-      weight: 0.3,
-      passed: true,
-      reason: '文档完整'
-    }
-  ],
+  confidence: 1,
+  feedback: '代码质量良好，测试覆盖率达标，文档完整',
+  criteria: [], // AI Agent 评分不使用加权标准
   suggestions: [],
-  scorerId: 'scorer-001',
-  scorerType: 'rule',
+  scorerId: 'scorer', // 对应 agentic.config.ts 中 scorer.agentId
+  scorerType: 'agent',
   scoredAt: 1708013000000,
   metadata: {}
 }
@@ -531,7 +507,7 @@ export const TaskSchema = z.object({
   id: z.string().uuid(),
   description: z.string().min(1).max(1000),
   type: z.enum(['local', 'downstream', 'inquiry']),
-  status: z.enum(['pending', 'running', 'waiting_user', 'completed', 'failed', 'cancelled']),
+  status: z.enum(['pending', 'running', 'waiting_user', 'waiting_eval', 'completed', 'failed', 'cancelled']),
   assignedAgent: z.string().optional(),
   agentMetadata: z.record(z.any()).optional(),
   parentTaskId: z.string().uuid().optional(),
@@ -563,7 +539,7 @@ export const ScoreSchema = z.object({
   })),
   suggestions: z.array(z.string()),
   scorerId: z.string(),
-  scorerType: z.enum(['rule', 'heuristic', 'manual']),
+  scorerType: z.enum(['agent']),
   scoredAt: z.number().int().positive(),
   metadata: z.record(z.any())
 })

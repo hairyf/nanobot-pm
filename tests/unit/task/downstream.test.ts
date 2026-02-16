@@ -1,8 +1,8 @@
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { HistoryStore } from '../../../src/storage/history-store'
-import { TaskStore } from '../../../src/storage/task-store'
+import { HistoryStore } from '../../../src/storage/history'
+import { TaskStore } from '../../../src/storage/task'
 import { TaskManager } from '../../../src/task/manager'
 
 describe('taskManager - Downstream Task Creation (T055)', () => {
@@ -19,25 +19,25 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
 
   describe('createChildTask', () => {
     it('creates a child task with correct parentTaskId', async () => {
-      const parent = await manager.createTask({ description: 'Parent task', type: 'local' })
-      const child = await manager.createChildTask(parent.id, { description: 'Child task', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent task' })
+      const child = await manager.createChildTask(parent.id, { description: 'Child task' })
 
       expect(child.parentTaskId).toBe(parent.id)
       expect(child.depth).toBe(parent.depth + 1)
     })
 
     it('increments depth from parent task', async () => {
-      const parent = await manager.createTask({ description: 'Parent', type: 'local', depth: 2 })
-      const child = await manager.createChildTask(parent.id, { description: 'Child', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent', depth: 2 })
+      const child = await manager.createChildTask(parent.id, { description: 'Child' })
 
       expect(child.depth).toBe(3)
       expect(child.depth).toBe(parent.depth + 1)
     })
 
     it('updates parent task childTaskIds when child is created', async () => {
-      const parent = await manager.createTask({ description: 'Parent', type: 'local' })
-      const child1 = await manager.createChildTask(parent.id, { description: 'Child 1', type: 'local' })
-      const child2 = await manager.createChildTask(parent.id, { description: 'Child 2', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent' })
+      const child1 = await manager.createChildTask(parent.id, { description: 'Child 1' })
+      const child2 = await manager.createChildTask(parent.id, { description: 'Child 2' })
 
       const updatedParent = await manager.getTask(parent.id)
       expect(updatedParent?.childTaskIds).toContain(child1.id)
@@ -46,12 +46,11 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
     })
 
     it('tracks depth correctly up to 10 levels', async () => {
-      let currentTask = await manager.createTask({ description: 'Root', type: 'local', depth: 0 })
+      let currentTask = await manager.createTask({ description: 'Root', depth: 0 })
 
       for (let i = 1; i <= 10; i++) {
         const child = await manager.createChildTask(currentTask.id, {
           description: `Level ${i}`,
-          type: 'local',
         })
         expect(child.depth).toBe(i)
         currentTask = child
@@ -59,12 +58,11 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
     })
 
     it('rejects task creation when depth exceeds 10', async () => {
-      const currentTask = await manager.createTask({ description: 'Root', type: 'local', depth: 9 })
+      const currentTask = await manager.createTask({ description: 'Root', depth: 9 })
 
       // Create task at depth 10 (should succeed)
       const depth10Task = await manager.createChildTask(currentTask.id, {
         description: 'Depth 10',
-        type: 'local',
       })
       expect(depth10Task.depth).toBe(10)
 
@@ -72,24 +70,23 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
       await expect(
         manager.createChildTask(depth10Task.id, {
           description: 'Depth 11 - should fail',
-          type: 'local',
         }),
       ).rejects.toThrow(/max depth|depth.*10|exceeds.*depth/i)
     })
 
     it('creates child task with depth 0 when parent has no depth specified', async () => {
-      const parent = await manager.createTask({ description: 'Parent', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent' })
       expect(parent.depth).toBe(0)
 
-      const child = await manager.createChildTask(parent.id, { description: 'Child', type: 'local' })
+      const child = await manager.createChildTask(parent.id, { description: 'Child' })
       expect(child.depth).toBe(1)
     })
 
     it('creates nested child tasks with correct depth progression', async () => {
-      const root = await manager.createTask({ description: 'Root', type: 'local' })
-      const level1 = await manager.createChildTask(root.id, { description: 'Level 1', type: 'local' })
-      const level2 = await manager.createChildTask(level1.id, { description: 'Level 2', type: 'local' })
-      const level3 = await manager.createChildTask(level2.id, { description: 'Level 3', type: 'local' })
+      const root = await manager.createTask({ description: 'Root' })
+      const level1 = await manager.createChildTask(root.id, { description: 'Level 1' })
+      const level2 = await manager.createChildTask(level1.id, { description: 'Level 2' })
+      const level3 = await manager.createChildTask(level2.id, { description: 'Level 3' })
 
       expect(root.depth).toBe(0)
       expect(level1.depth).toBe(1)
@@ -108,17 +105,17 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
 
   describe('getChildTasks', () => {
     it('returns empty array when parent has no children', async () => {
-      const parent = await manager.createTask({ description: 'Parent', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent' })
       const children = await manager.getChildTasks(parent.id)
 
       expect(children).toEqual([])
     })
 
     it('returns all child tasks for a parent', async () => {
-      const parent = await manager.createTask({ description: 'Parent', type: 'local' })
-      const child1 = await manager.createChildTask(parent.id, { description: 'Child 1', type: 'local' })
-      const child2 = await manager.createChildTask(parent.id, { description: 'Child 2', type: 'local' })
-      const child3 = await manager.createChildTask(parent.id, { description: 'Child 3', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent' })
+      const child1 = await manager.createChildTask(parent.id, { description: 'Child 1' })
+      const child2 = await manager.createChildTask(parent.id, { description: 'Child 2' })
+      const child3 = await manager.createChildTask(parent.id, { description: 'Child 3' })
 
       const children = await manager.getChildTasks(parent.id)
 
@@ -129,9 +126,9 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
     })
 
     it('returns only direct children, not grandchildren', async () => {
-      const parent = await manager.createTask({ description: 'Parent', type: 'local' })
-      const child = await manager.createChildTask(parent.id, { description: 'Child', type: 'local' })
-      const grandchild = await manager.createChildTask(child.id, { description: 'Grandchild', type: 'local' })
+      const parent = await manager.createTask({ description: 'Parent' })
+      const child = await manager.createChildTask(parent.id, { description: 'Child' })
+      const grandchild = await manager.createChildTask(child.id, { description: 'Grandchild' })
 
       const parentChildren = await manager.getChildTasks(parent.id)
       const childChildren = await manager.getChildTasks(child.id)

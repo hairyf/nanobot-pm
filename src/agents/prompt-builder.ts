@@ -80,21 +80,11 @@ export function buildTaskPrompt(task: Task): string {
 
   sections.push('## Task')
   sections.push('')
-  sections.push(`**Type:** ${task.type}`)
-  sections.push('')
   sections.push('### Description')
   sections.push('')
   sections.push(task.description)
 
   return sections.join('\n')
-}
-
-/**
- * Build a combined prompt (system + task) for contexts that only accept a single string.
- * @deprecated Prefer `buildSystemPrompt` + `buildTaskPrompt` separately.
- */
-export function buildAgentPrompt(agent: TaskAgent, task: Task): string {
-  return `${buildSystemPrompt(agent)}\n\n${buildTaskPrompt(task)}`
 }
 
 /**
@@ -156,8 +146,6 @@ export function buildScorerTaskPrompt(task: Task, completionOutput: string, logF
   sections.push('')
   sections.push('### Original Task')
   sections.push('')
-  sections.push(`**Type:** ${task.type}`)
-  sections.push('')
   sections.push(task.description)
   sections.push('')
   sections.push('### Agent Completion Summary')
@@ -185,8 +173,6 @@ export function buildRetryTaskPrompt(task: Task, feedback: string, suggestions: 
   const sections: string[] = []
 
   sections.push('## Task (Retry)')
-  sections.push('')
-  sections.push(`**Type:** ${task.type}`)
   sections.push('')
   sections.push('### Description')
   sections.push('')

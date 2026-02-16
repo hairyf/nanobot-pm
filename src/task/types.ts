@@ -1,9 +1,6 @@
 import { z } from 'zod'
 
-// --- TaskType & TaskStatus ---
-export const TaskTypeSchema = z.enum(['local', 'downstream', 'inquiry'])
-export type TaskType = z.infer<typeof TaskTypeSchema>
-
+// --- TaskStatus ---
 export const TaskStatusSchema = z.enum([
   'pending',
   'running',
@@ -39,7 +36,6 @@ export type TaskResult = z.infer<typeof TaskResultSchema>
 export const TaskSchema = z.object({
   id: z.string(),
   description: z.string(),
-  type: TaskTypeSchema,
   status: TaskStatusSchema,
   assignedAgent: z.string().optional(),
   agentMetadata: z.record(z.string(), z.unknown()).optional(),
@@ -61,7 +57,6 @@ export type Task = z.infer<typeof TaskSchema>
 // --- TaskEvent (discriminated union) ---
 const CreateTaskDataSchema = z.object({
   description: z.string(),
-  type: TaskTypeSchema,
   parentTaskId: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
@@ -197,7 +192,7 @@ export const UserQuerySchema = z.object({
   taskId: z.string(),
   question: z.string(),
   context: z.string().optional(),
-  options: z.array(QueryOptionSchema),
+  options: z.array(QueryOptionSchema).default([]),
   response: z.string().optional(),
   selectedOption: z.string().optional(),
   respondedAt: z.number().optional(),

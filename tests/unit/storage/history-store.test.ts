@@ -4,7 +4,7 @@ import type { TaskEvent } from '../../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { HistoryStore } from '../../../src/storage/history-store'
+import { HistoryStore } from '../../../src/storage/history'
 import { generateUUID } from '../../../src/utils/validator'
 
 describe('historyStore', () => {
@@ -21,7 +21,7 @@ describe('historyStore', () => {
       const event: TaskEvent = {
         type: 'created',
         timestamp: Date.now(),
-        data: { description: 'New task', type: 'local' },
+        data: { description: 'New task' },
       }
       await store.appendEvent(taskId, event)
       const history = await store.getHistory(taskId)

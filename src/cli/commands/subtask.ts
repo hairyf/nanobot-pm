@@ -75,7 +75,6 @@ export const subtaskCommand = defineCommand({
         childTaskId,
         agentId,
         description,
-        type: childTask?.type ?? 'local',
         status: childTask?.status ?? 'pending',
         message: 'Subtask created and queued',
       },

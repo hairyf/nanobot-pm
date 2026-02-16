@@ -2,8 +2,8 @@ import { consola } from 'consola'
 
 export const logger = consola.withTag('agentic')
 
-export function taskCreated(taskId: string, description: string, type: string) {
-  logger.info('task:created', { taskId, description, type })
+export function taskCreated(taskId: string, description: string) {
+  logger.info('task:created', { taskId, description })
 }
 
 export function taskAssigned(taskId: string, agentId: string) {

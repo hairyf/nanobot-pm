@@ -2,7 +2,7 @@ import process from 'node:process'
 import { defineCommand } from 'citty'
 import { join } from 'pathe'
 import { syncTranscriptToLog } from '../../agents/transcript-sync'
-import { UserQueryManager } from '../../task/user-query'
+import { AskManager } from '../../task/ask'
 import { createCliContext } from '../helpers'
 import { formatDuration, formatStatus, formatTable, formatUserQuery, outputJson } from '../utils'
 
@@ -156,7 +156,7 @@ async function showTaskStatus(
   // If task is waiting_user, include the pending query
   let pendingQuery
   if (task.status === 'waiting_user') {
-    const queryManager = new UserQueryManager(storage)
+    const queryManager = new AskManager(storage)
     const query = await queryManager.getQueryByTask(taskId)
     if (query) {
       pendingQuery = {
@@ -176,7 +176,6 @@ async function showTaskStatus(
         task: {
           id: task.id,
           description: task.description,
-          type: task.type,
           status: task.status,
           assignedAgent: task.assignedAgent,
           createdAt: task.createdAt,
@@ -197,7 +196,6 @@ async function showTaskStatus(
     const elapsed = Date.now() - task.createdAt
     console.log(`\nTask: ${task.id}`)
     console.log(`Description: ${task.description}`)
-    console.log(`Type: ${task.type}`)
     console.log(`Status: ${formatStatus(task.status)}`)
     console.log(`Agent: ${task.assignedAgent || '(unassigned)'}`)
     console.log(`Created: ${new Date(task.createdAt).toLocaleString()}`)
@@ -264,7 +262,6 @@ async function showAllTasks(
         tasks: tasks.map(t => ({
           id: t.id,
           description: t.description,
-          type: t.type,
           status: t.status,
           assignedAgent: t.assignedAgent,
           createdAt: t.createdAt,

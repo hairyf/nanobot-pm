@@ -2,14 +2,14 @@ import type { QueryOption } from '../../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { HistoryStore } from '../../../src/storage/history-store'
-import { TaskStore } from '../../../src/storage/task-store'
+import { HistoryStore } from '../../../src/storage/history'
+import { TaskStore } from '../../../src/storage/task'
+import { AskManager } from '../../../src/task/ask'
 import { TaskManager } from '../../../src/task/manager'
-import { UserQueryManager } from '../../../src/task/user-query'
 
 describe('user interaction state transitions', () => {
   let taskManager: TaskManager
-  let queryManager: UserQueryManager
+  let queryManager: AskManager
   let taskStore: TaskStore
   let historyStore: HistoryStore
   let storage: ReturnType<typeof createStorage>
@@ -19,14 +19,13 @@ describe('user interaction state transitions', () => {
     taskStore = new TaskStore(storage)
     historyStore = new HistoryStore(storage)
     taskManager = new TaskManager(taskStore, historyStore)
-    queryManager = new UserQueryManager(storage)
+    queryManager = new AskManager(storage)
   })
 
   describe('task transitions from running → waiting_user when query is created', () => {
     it('transitions task to waiting_user when user query is created', async () => {
       const task = await taskManager.createTask({
         description: 'Need user input',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 
@@ -47,7 +46,6 @@ describe('user interaction state transitions', () => {
     it('creates user_query event in history when query is created', async () => {
       const task = await taskManager.createTask({
         description: 'Ask user',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 
@@ -73,7 +71,6 @@ describe('user interaction state transitions', () => {
     it('transitions task back to running when user responds', async () => {
       const task = await taskManager.createTask({
         description: 'Waiting for user',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 
@@ -101,7 +98,6 @@ describe('user interaction state transitions', () => {
     it('creates user_response event in history when response is submitted', async () => {
       const task = await taskManager.createTask({
         description: 'Get response',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 
@@ -130,7 +126,6 @@ describe('user interaction state transitions', () => {
       vi.useFakeTimers()
       const task = await taskManager.createTask({
         description: 'Wait forever',
-        type: 'inquiry',
         timeout: 1000, // Short timeout
       })
       await taskManager.transitionStatus(task.id, 'running')
@@ -159,7 +154,6 @@ describe('user interaction state transitions', () => {
     it('can cancel task from waiting_user state', async () => {
       const task = await taskManager.createTask({
         description: 'Cancel me',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 
@@ -188,7 +182,6 @@ describe('user interaction state transitions', () => {
     it('allows sequential queries for the same task', async () => {
       const task = await taskManager.createTask({
         description: 'Multiple questions',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 
@@ -235,7 +228,6 @@ describe('user interaction state transitions', () => {
     it('prevents concurrent queries for the same task', async () => {
       const task = await taskManager.createTask({
         description: 'No concurrent queries',
-        type: 'inquiry',
       })
       await taskManager.transitionStatus(task.id, 'running')
 

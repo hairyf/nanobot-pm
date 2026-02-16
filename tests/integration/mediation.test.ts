@@ -1,6 +1,6 @@
 import type { Mediation } from '../../src/mediator/types'
 import type { Score } from '../../src/scorer/types'
-import type { HistoryStore } from '../../src/storage/history-store'
+import type { HistoryStore } from '../../src/storage/history'
 import type { TaskEvent } from '../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
@@ -43,7 +43,6 @@ describe('mediation flow integration', () => {
   it('after 3 score rejections, mediator is triggered', async () => {
     const task = await orchestrator.taskManager.createTask({
       description: 'Test task for mediation',
-      type: 'local',
     })
 
     // Simulate 3 rejections
@@ -105,7 +104,6 @@ describe('mediation flow integration', () => {
   it('mediator diagnoses the problem', async () => {
     const task = await orchestrator.taskManager.createTask({
       description: 'Test task',
-      type: 'local',
     })
     await orchestrator.taskManager.transitionStatus(task.id, 'running')
     await orchestrator.taskManager.assignTask(task.id, 'agent-1')
@@ -141,7 +139,6 @@ describe('mediation flow integration', () => {
   it('mediator generates and applies solution', async () => {
     const task = await orchestrator.taskManager.createTask({
       description: 'Test task',
-      type: 'local',
     })
     await orchestrator.taskManager.transitionStatus(task.id, 'running')
     await orchestrator.taskManager.assignTask(task.id, 'agent-1')
@@ -184,7 +181,6 @@ describe('mediation flow integration', () => {
   it('task continues after mediation', async () => {
     const task = await orchestrator.taskManager.createTask({
       description: 'Test task',
-      type: 'local',
     })
     await orchestrator.taskManager.transitionStatus(task.id, 'running')
     await orchestrator.taskManager.assignTask(task.id, 'agent-1')
@@ -224,7 +220,6 @@ describe('mediation flow integration', () => {
   it('mediation is recorded in history', async () => {
     const task = await orchestrator.taskManager.createTask({
       description: 'Test task',
-      type: 'local',
     })
     await orchestrator.taskManager.transitionStatus(task.id, 'running')
     await orchestrator.taskManager.assignTask(task.id, 'agent-1')

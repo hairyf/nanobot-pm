@@ -39,7 +39,7 @@
 - 内存占用 < 500MB (5 个并发任务)
 - 5 个并发任务下单任务操作延迟增加不超过 50%
 - 可观测性限于 consola 控制台日志（人类可读），不引入结构化日志或指标收集
-- Agent 与编排器 in-process 通信（函数调用 + 持久化状态机），不使用 IPC/HTTP
+- 编排器（Orchestrator）in-process 管理任务状态和调度。Agent 执行采用平台委派模型：executor 构建 prompt 写入文件，通过平台适配器（cursor/claude CLI）启动外部 AI 会话，外部 agent 通过 CLI 命令交互
 
 **规模/范围**:
 - 支持 10+ 种 Agent 类型
@@ -94,7 +94,7 @@
 - c12 (配置)
 - hookable (事件)
 - 避免过度抽象，从简单开始
-- Agent 与编排器 in-process 通信（函数调用），采用持久化状态机模型
+- 编排器 in-process 管理状态，Agent 执行通过平台委派（cursor/claude CLI），采用持久化状态机模型
 
 ## 项目结构
 
@@ -118,23 +118,19 @@ specs/001-multi-agent-orchestrator/
 ```text
 src/
 ├── orchestrator/        # 循环器核心
-│   ├── index.ts        # 主循环逻辑
-│   ├── scheduler.ts    # 任务调度器
-│   ├── dispatcher.ts   # Agent 分派器
-│   ├── reporter.ts     # 会话报告器（进度推送、会话绑定、断线检测）
+│   ├── index.ts        # Orchestrator 类（任务提交、处理、队列管理、agent 选择、会话管理）
 │   └── types.ts        # 类型定义
 │
 ├── task/               # 任务管理
 │   ├── index.ts        # 任务管理器
 │   ├── manager.ts      # 任务生命周期
-│   ├── classifier.ts   # 任务类型判断
+│   ├── ask.ts          # 用户询问管理（AskManager）
 │   ├── queue.ts        # 任务队列
 │   └── types.ts        # 任务类型定义
 │
 ├── scorer/             # 评分系统
 │   ├── index.ts        # 评分器入口
-│   ├── evaluator.ts    # 评分逻辑
-│   ├── feedback.ts     # 反馈处理
+│   ├── evaluator.ts    # 评分逻辑（buildAgentScore）
 │   └── types.ts        # 评分类型
 │
 ├── mediator/           # 调节者
@@ -144,10 +140,12 @@ src/
 │   └── types.ts        # 调节类型
 │
 ├── agents/             # Agent 管理（已存在，扩展）
-│   ├── index.ts        # Agent 注册表
-│   ├── loader.ts       # Agent 加载器
-│   ├── executor.ts     # Agent 执行器
-│   ├── prompt-builder.ts # Agent 提示构建器（含 Scorer/Retry 提示）
+│   ├── index.ts        # 平台适配器（claude/cursor CLI 后端）
+│   ├── loader.ts       # Agent 加载器（JSON + Markdown 格式）
+│   ├── registry.ts     # Agent 注册表
+│   ├── executor.ts     # Agent 执行器（平台委派模型，prompt 文件写入）
+│   ├── prompt-builder.ts # 提示构建器（System/Task/Scorer/Retry prompt）
+│   ├── transcript-sync.ts # Transcript 同步工具（Cursor agent-transcripts → 日志）
 │   └── types.ts        # Agent 类型
 │
 ├── storage/            # 存储层（已存在，扩展）
@@ -177,10 +175,12 @@ src/
 │   ├── define.ts       # 配置定义
 │   └── schema.ts       # 配置 schema
 │
+├── constants/          # 常量定义
+│   └── platforms.ts   # 平台配置（Cursor/Claude 目录和命令映射）
+│
 └── utils/              # 工具函数（已存在，扩展）
     ├── index.ts        # 工具函数入口
     ├── logger.ts       # 日志工具
-    ├── timer.ts        # 定时器工具
     └── validator.ts    # 验证工具
 
 tests/
@@ -193,7 +193,6 @@ tests/
 │
 ├── integration/        # 集成测试
 │   ├── task-flow.test.ts      # 任务流程测试
-│   ├── session-lifecycle.test.ts # 会话生命周期测试
 │   ├── mediation.test.ts      # 调节测试
 │   └── concurrent.test.ts     # 并发测试
 │
@@ -237,10 +236,10 @@ tests/
    - 调查：专家系统 vs 案例推理 vs LLM
    - 决策：调节触发条件和策略
 
-5. **并发控制**（已决策：in-process 单线程 + 持久化状态机）
+5. **并发控制**（已决策：FIFO 队列 + 并发限制 + 持久化状态机）
    - 研究任务并发执行策略
-   - ~~调查：线程池 vs Worker 线程 vs 进程池~~ → 已决策：in-process 函数调用，无需多线程/多进程
-   - 决策：采用持久化状态机模型，每步执行到决策点后持久化状态并结束，事件驱动下一步执行
+   - ~~调查：线程池 vs Worker 线程 vs 进程池~~ → 已决策：FIFO 任务队列 + maxConcurrentTasks 并发限制，编排器 in-process 管理，Agent 执行委派给外部平台
+   - 决策：采用持久化状态机模型，每步执行到决策点后持久化状态并结束，CLI 命令驱动下一步执行
 
 6. **持久化策略**
    - 研究任务状态持久化方案
@@ -269,7 +268,7 @@ tests/
 1. **Task（任务）**
    - id: string (UUID)
    - description: string
-   - type: 'local' | 'downstream' | 'inquiry'
+   ~~- type: 'local' | 'downstream' | 'inquiry'~~（已移除：任务类型分类功能已删除）
    - status: 'pending' | 'running' | 'waiting_user' | 'waiting_eval' | 'completed' | 'failed' | 'cancelled'
    - assignedAgent: string
    - parentTaskId?: string

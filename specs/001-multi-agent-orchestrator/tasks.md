@@ -40,11 +40,11 @@
 
 ### 类型定义
 
-- [X] T006 [P] 在 src/task/types.ts 中定义 Task（含 waiting_eval 状态、retryCount、maxRetries、score、output 字段）、TaskType、TaskStatus、TaskResult、TaskError、TaskHistory、TaskEvent、TaskStatistics、UserQuery、QueryOption 类型
+- [X] T006 [P] 在 src/task/types.ts 中定义 Task（含 waiting_eval 状态、retryCount、maxRetries、score、output 字段）、TaskStatus、TaskResult、TaskError、TaskHistory、TaskEvent、TaskStatistics、UserQuery、QueryOption 类型（~~TaskType 已移除：任务类型分类功能已删除~~）
 - [X] T007 [P] 在 src/scorer/types.ts 中定义 Score、ScoreResult、ScoreCriterion、ScoringRule 类型
 - [X] T008 [P] 在 src/mediator/types.ts 中定义 Mediation、Diagnosis、ProblemType、Solution、SolutionType、MediationResult 类型
 - [X] T009 [P] 在 src/agents/types.ts 中定义 Agent、AgentStatus、AgentConfig、RetryStrategy、AgentStatistics 类型
-- [X] T010 [P] 在 src/orchestrator/types.ts 中定义 OrchestratorHooks、OrchestratorConfig（含 pollInterval 字段，默认 10 秒）、SessionBinding（sessionId、taskId、status、pollInterval、boundAt、lastActiveAt、disconnectedAt）、ReporterOptions 类型
+- [X] T010 [P] 在 src/orchestrator/types.ts 中定义 OrchestratorHooks、OrchestratorConfig（含 pollInterval 字段，默认 10 秒）、SessionBinding（sessionId、taskId、status、pollInterval、boundAt、lastActiveAt、disconnectedAt）类型（~~ReporterOptions 已移除：SessionReporter 类已删除~~）
 - [X] T011 [P] 在 src/storage/types.ts 中定义 StorageConfig 和存储接口（TaskStoreInterface、HistoryStoreInterface）
 
 ### 配置系统
@@ -62,7 +62,7 @@
 ### 工具函数
 
 - [X] T018 [P] 在 src/utils/logger.ts 中使用 consola 实现日志工具（debug、info、warn、error 级别），定义关键操作日志点辅助函数：任务创建（task:created）、Agent 分配（task:assigned）、评分提交（score:submitted）、调节触发（mediation:triggered）、任务完成（task:completed）、任务失败（task:failed），确保与 spec.md 可观测性要求对齐
-- [X] T019 [P] 在 src/utils/timer.ts 中实现计时工具（createTimeout、createInterval、withTimeout 封装）
+- [X] ~~T019 [P] 在 src/utils/timer.ts 中实现计时工具~~（已移除：createTimeout/createInterval/withTimeout 从未被任何模块使用）
 - [X] T020 [P] 在 src/utils/validator.ts 中实现验证工具（generateUUID、validateTaskInput、validateConfig）
 - [X] T021 在 src/utils/index.ts 中实现工具函数入口点及重导出
 
@@ -78,49 +78,51 @@
 
 ## 第三阶段：用户故事 1 - 基础任务循环调度 (优先级: P1) 🎯 MVP
 
-**目标**: 用户启动一个任务，系统自动判断类型、分配 Agent、执行、评分并返回结果。实现完整的 classify → assign → execute → score → decide 循环。
+**目标**: 用户启动一个任务，系统自动判断类型、分配 Agent、委派给外部 AI 平台（Cursor/Claude CLI）执行。配置 Scorer Agent 时，完成后转 waiting_eval 由 Scorer Agent 评分；未配置时直接完成。实现 classify → assign → delegate → (score) → decide 循环。
 
-**独立测试**: 创建一个简单任务（如"生成一个 README 文件"），验证系统能正确判断类型为 local、分配给合适的 Agent、执行、评分通过后返回结果；评分驳回时能重试（最多 3 次）。
+**独立测试**: 创建一个简单任务（如"生成一个 README 文件"），验证系统能正确判断类型为 local、分配给合适的 Agent、写入 prompt 文件后委派给外部 AI 会话；配置 scorer.agentId 时任务完成后转 waiting_eval，Scorer Agent 通过 `agentic score` 命令评分，驳回时 Agent 重试附带反馈（最多 3 次）。
 
 ### 用户故事 1 的测试 ⚠️
 
 > **注意：先编写这些测试，确保在实现之前它们是失败的**
 
-- [X] T025 [P] [US1] 在 tests/unit/task/classifier.test.ts 中编写 TaskClassifier 的单元测试（分类 local/downstream/inquiry）
-- [X] T026 [P] [US1] 在 tests/unit/task/manager.test.ts 中编写 TaskManager 的单元测试（创建任务、FSM 状态转换、重试逻辑）
-- [X] T027 [P] [US1] 在 tests/unit/task/queue.test.ts 中编写 TaskQueue 的单元测试（入队、出队、并发限制）
-- [X] T028 [P] [US1] 在 tests/unit/agents/loader.test.ts 中编写 AgentLoader 的单元测试（从目录读取 Agent 定义）
-- [X] T029 [P] [US1] 在 tests/unit/agents/registry.test.ts 中编写 AgentRegistry 的单元测试（注册、匹配能力、选择最佳）
-- [X] T030 [P] [US1] 在 tests/unit/scorer/evaluator.test.ts 中编写评分器的单元测试（基于规则的评分、启发式阈值）
-- [X] T031 [P] [US1] 在 tests/unit/orchestrator/loop.test.ts 中编写 Orchestrator 主循环的单元测试（完整 classify→assign→execute→score 循环）
-- [X] T032 [P] [US1] 在 tests/unit/orchestrator/reporter.test.ts 中编写 Session 报告器的单元测试（绑定会话到任务、按间隔发送进度、检测会话关闭）
-- [X] T033 [P] [US1] 在 tests/integration/task-flow.test.ts 中编写基础任务流程的集成测试（使用 mock agent 的端到端测试）
-- [X] T034 [P] [US1] 在 tests/integration/session-lifecycle.test.ts 中编写会话生命周期的集成测试（specify → 自动轮询 → 完成 → 会话结束）
+- [X] ~~T025 [P] [US1] 在 tests/unit/task/classifier.test.ts 中编写 TaskClassifier 的单元测试~~（已移除：任务分类器功能已删除，不再需要类型分类）
+- [X] T026 [P] [US1] 在 tests/unit/task/manager.test.ts 中编写 TaskManager 的单元测试（创建任务默认值、FSM 状态转换合法/非法、waiting_eval 流程、重试计数和历史事件）
+- [X] T027 [P] [US1] 在 tests/unit/task/queue.test.ts 中编写 TaskQueue 的单元测试（入队、出队、并发限制、运行状态管理、重复入队去重）
+- [X] T028 [P] [US1] 在 tests/unit/agents/loader.test.ts 中编写 AgentLoader 的单元测试（从目录读取 JSON/Markdown Agent 定义、跳过无效文件、缺失字段默认值）
+- [X] T029 [P] [US1] 在 tests/unit/agents/registry.test.ts 中编写 AgentRegistry 的单元测试（注册、匹配能力、选择最佳、更新状态）
+- [X] T030 [P] [US1] 在 tests/unit/scorer/evaluator.test.ts 中编写评分器的单元测试（buildAgentScore 创建 pass/reject 评分、自定义 confidence/metadata、scorerType 始终为 agent）
+- [X] T031 [P] [US1] Orchestrator 主循环测试覆盖：通过 tests/integration/task-flow.test.ts（委派流程）等集成测试验证 processTask 完整流程（~~downstream-flow.test.ts、session-lifecycle.test.ts 已移除：相关功能已简化或删除~~）
+- [X] ~~T032 [P] [US1] 在 tests/unit/orchestrator/reporter.test.ts 中编写 Session 报告器的单元测试~~（已移除：SessionReporter 类已删除，会话报告功能已简化）
+- [X] T033 [P] [US1] 在 tests/integration/task-flow.test.ts 中编写任务委派流程的集成测试（提交任务并委派给外部 agent 保持 running、在 metadata 中存储 prompt 和 delegated 标志、正确类型分类）
+- [X] ~~T034 [P] [US1] 在 tests/integration/session-lifecycle.test.ts 中编写会话生命周期的集成测试~~（已移除：会话生命周期测试已删除）
 
 ### 用户故事 1 的实现
 
-- [X] T035 [US1] 在 src/agents/loader.ts 中实现 Agent 加载器（扫描 AI Agents 环境标准目录如 .cursor/agents/、.claude/agents/，目录列表通过配置 agents.directories 指定，解析 JSON 定义）
-- [X] T036 [US1] 在 src/agents/registry.ts 中实现 Agent 注册表（register、unregister、getById、listAvailable、matchByCapabilities）
-- [X] T037 [US1] 在 src/agents/executor.ts 中实现 Agent 执行器（通过 agent 执行任务、处理结果/错误、遵守超时）
-- [X] T038 [US1] 在 src/task/classifier.ts 中实现任务分类器（分析描述关键词、匹配 agent 能力、确定类型）
-- [X] T039 [US1] 在 src/task/manager.ts 中实现带 FSM 的任务管理器（创建任务、转换状态、验证转换、处理重试）。采用持久化状态机步进模型：每步从 unstorage 加载状态→执行到决策点→持久化状态→结束，事件驱动下一步执行
-- [X] T040 [US1] 在 src/task/queue.ts 中实现带 Promise 池的任务队列（入队、出队、遵守配置中的 maxConcurrentTasks 限制）
+- [X] T035 [US1] 在 src/agents/loader.ts 中实现 Agent 加载器（扫描配置 agents.directories 指定的目录如 .cursor/agents/、.claude/agents/，解析 JSON 和 Markdown（frontmatter + ## Capabilities/Specialties）两种格式的 Agent 定义，缺失字段使用默认值）
+- [X] T036 [US1] 在 src/agents/registry.ts 中实现 Agent 注册表（register、unregister、get/getById、listAvailable、listAll、matchByCapabilities、selectBest、hasSuitableAgent、updateStatus）
+- [X] T037 [US1] 在 src/agents/executor.ts 中实现 Agent 执行器——采用平台委派模型：构建 system/task prompt 并写入 `{basePath}/prompts/{taskId}.md` 文件（避免 Windows CLI 参数截断），通过平台适配器（cursor/claude CLI）启动外部 AI 会话，返回 `TaskResult` 带 `metadata.delegated: true` 和 `sessionId`，任务保持 running 状态直到外部 agent 通过 `complete` 命令报告完成
+- [X] T037a [US1] 在 src/agents/index.ts 中实现平台适配器（claude CLI 和 cursor agent CLI 两种后端，支持 launch/fresh/start/reply/clear 会话管理，自动配置平台权限文件如 .claude/settings.json、.cursor/cli.json）
+- [X] ~~T038 [US1] 在 src/task/classifier.ts 中实现任务分类器~~（已移除：任务类型分类功能已删除，所有任务统一处理）
+- [X] T039 [US1] 在 src/task/manager.ts 中实现带 FSM 的任务管理器（创建任务、转换状态含 waiting_eval、验证转换合法性、处理重试计数、子任务创建与循环依赖检测）。采用持久化状态机步进模型：每步从 unstorage 加载状态→执行到决策点→持久化状态→结束，事件驱动下一步执行
+- [X] T040 [US1] 在 src/task/queue.ts 中实现任务队列（FIFO 入队/出队、maxConcurrentTasks 并发限制、运行中任务跟踪、重复入队去重）
 - [X] T041 [US1] 在 src/task/index.ts 中实现任务模块入口点及重导出
-- [X] T042 [US1] 在 src/scorer/evaluator.ts 中实现评分器（可配置规则、加权标准、启发式阈值调整）
-- [X] T043 [US1] 在 src/scorer/feedback.ts 中实现评分反馈处理器（解析反馈、生成改进建议）
-- [X] T044 [US1] 在 src/scorer/index.ts 中实现评分器入口点（评估任务结果、决定通过/驳回）
-- [X] T045 [US1] 在 src/orchestrator/index.ts 中使用 hookable 实现编排器事件钩子（task:created、task:assigned、task:completed、score:submitted）
-- [X] T046 [US1] 在 src/orchestrator/scheduler.ts 中实现调度器（将任务分配给最佳 agent、使用退避策略管理重试）
-- [X] T047 [US1] 在 src/orchestrator/dispatcher.ts 中实现分发器（按能力选择 agent、检查可用性、回退到队列）
-- [X] T048 [US1] 在 src/orchestrator/index.ts 中实现编排器主循环（classify → assign → execute → score → 决定下一步操作）。每一步为独立的状态机步进（加载状态→执行→持久化→退出），由 hookable 事件驱动步进衔接
-- [X] T049 [US1] 在 src/orchestrator/reporter.ts 中实现会话报告器（将会话绑定到任务、每 10 秒可配置间隔自动轮询进度、检测会话关闭/断开，FR-012/FR-019）
-- [X] T050 [US1] 在 src/orchestrator/index.ts 中实现后台任务执行（将任务循环与会话生命周期解耦、会话断开时任务继续运行、在 unstorage 中持久化会话绑定，FR-019）
-- [X] T051 [US1] 在 src/cli/commands/init.ts 中实现 CLI init 命令（创建 .agentic/ 目录、配置文件、存储目录、agents 目录）
-- [X] T052 [US1] 在 src/cli/commands/specify.ts 中实现 CLI specify 命令（解析任务描述、创建任务、启动编排器循环、绑定会话报告器进行自动轮询、保持活跃会话直到任务完成/失败）
-- [X] T053 [US1] 在 src/cli/utils.ts 中实现 CLI 工具函数（表格格式化、进度显示、错误处理、JSON 输出）
-- [X] T054 [US1] 在 src/cli/index.ts 中使用 citty 搭建 CLI 入口点（注册 init、specify 命令、--help、--version）
+- [X] T042 [US1] 在 src/scorer/evaluator.ts 中实现 buildAgentScore——纯 AI Agent 评分模型：从 Scorer Agent 评估结果构建 Score 记录（result: pass/reject、feedback、suggestions、confidence），所有评估由配置的 scorer.agentId 对应的 Scorer Agent 执行，不含本地规则或启发式评分
+- [X] ~~T043 [US1] 在 src/scorer/feedback.ts 中实现评分反馈处理器~~（已移除：parseFeedback/generateImprovementSuggestions 从未被导入，评分改为纯 AI Agent 模式后不再需要本地反馈解析）
+- [X] T044 [US1] 在 src/scorer/index.ts 中实现评分器入口点及重导出（evaluator、types）
+- [X] T045 [US1] 在 src/orchestrator/index.ts 中使用 hookable 实现编排器事件钩子（task:created、task:assigned、task:started、task:completed、task:failed、score:submitted）并实现 Orchestrator 类，管理 TaskManager/TaskQueue/AgentRegistry/AskManager 的协调（~~Scheduler 已移除：调度逻辑内联到 Orchestrator 中~~）
+- [X] ~~T046 [US1] 在 src/orchestrator/scheduler.ts 中实现调度器~~（已移除：调度逻辑内联到 Orchestrator 中，agent 选择通过 registry.selectBest 实现）
+- [X] ~~T047 [US1] 在 src/orchestrator/dispatcher.ts 中实现分发器~~（已移除：Dispatcher 方法从未被调用，agent 选择功能由 Scheduler.assignTask() 承担）
+- [X] T048 [US1] 在 src/orchestrator/index.ts 的 Orchestrator.processTask() 中实现编排器核心循环（assign → execute → decide）。包含平台委派、metadata 存储、事件记录和错误处理。配置 scorer 时由外部 Scorer Agent 评分（通过 `agentic complete` → `agentic score`）；未配置 scorer 且未委派时根据执行结果直接完成/失败/重试（~~classify 步骤已移除：任务类型分类功能已删除，所有任务统一处理~~）
+- [X] ~~T049 [US1] 在 src/orchestrator/reporter.ts 中实现会话报告器~~（已移除：SessionReporter 类已删除，会话报告功能已简化）
+- [X] T050 [US1] 在 src/orchestrator/index.ts 中实现后台任务执行（processQueue 异步处理任务队列、processingPromises 跟踪处理中的任务、将任务循环与会话生命周期解耦、会话断开时任务继续运行，FR-019）
+- [X] T051 [US1] 在 src/cli/commands/init.ts 中实现 CLI init 命令（交互式选择平台 cursor/claude、创建 .agentic/ 目录结构含存储/agents/commands/skills 子目录、生成 agentic.config.ts 配置文件、创建平台特定命令模板）
+- [X] T052 [US1] 在 src/cli/commands/specify.ts 中实现 CLI specify 命令（接受 agentId 和任务描述参数、验证输入和 agent 存在性、通过 orchestrator.submitTask 提交并预分配 agent、等待处理完成后输出任务信息含 prompt 和 sessionId 的 JSON）
+- [X] T052a [US1] 在 src/cli/helpers.ts 中实现 CLI 上下文工厂 createCliContext（初始化配置、存储、TaskManager、HistoryStore、AskManager、加载 agents、创建 Orchestrator，为所有 CLI 命令提供共享上下文）（~~UserQueryManager 已重命名为 AskManager~~）
+- [X] T053 [US1] 在 src/cli/utils.ts 中实现 CLI 工具函数（formatTable 表格格式化、formatDuration 时长显示、formatStatus 状态图标、outputJson JSON 输出、formatUserQuery 用户查询格式化）
+- [X] T054 [US1] 在 src/cli/index.ts 中使用 citty 搭建 CLI 入口点（注册 init、specify、complete、score、status、wait、ask、subtask、respond 命令、--help、--version）
 
-**检查点**: 此时，用户故事 1 应完全可用——用户可以创建任务，系统自动分类、分配给 agent、执行、评分并返回结果。驳回时重试最多 3 次。`/agentic.specify` 命令维护一个持久 AI 会话，每 10 秒自动轮询进度。会话断开后任务在后台继续运行。这就是 MVP。
+**检查点**: 此时，用户故事 1 应完全可用——用户可以创建任务，系统自动分类、分配给 agent、写入 prompt 文件后委派给外部 AI 会话（Cursor/Claude CLI）。配置 scorer.agentId 时，agent 完成后通过 `agentic complete` 触发 Scorer Agent 评分，驳回时附带反馈重试（最多 3 次）。`agentic specify <agentId> "任务描述"` 命令提交任务并返回 taskId/sessionId。会话断开后任务在后台继续运行。这就是 MVP。
 
 ---
 
@@ -140,9 +142,9 @@
 
 - [-] T058 [US2] 在 src/task/manager.ts 中扩展 TaskManager 以支持父子任务创建
 - [-] T059 [US2] 在 src/task/manager.ts 中实现循环依赖检测
-- [-] T060 [US2] 在 src/orchestrator/dispatcher.ts 中扩展分发器以支持下游 Agent 选择
+- [-] ~~T060 [US2] 在 src/orchestrator/dispatcher.ts 中扩展分发器~~（已取消：Dispatcher 已移除，下游 Agent 选择逻辑内联到 Orchestrator.processTask() 中）
 - [-] T061 [US2] 在 src/orchestrator/index.ts 中扩展编排器循环以支持子任务生命周期
-- [-] T062 [US2] 在 src/orchestrator/scheduler.ts 中实现子任务结果聚合
+- [-] ~~T062 [US2] 在 src/orchestrator/scheduler.ts 中实现子任务结果聚合~~（已取消：Scheduler 已移除，子任务结果聚合逻辑内联到 Orchestrator 中）
 - [-] T063 [US2] 在 src/agents/index.ts 中添加缺失 Agent 检测和用户通知（FR-015）
 
 ---
@@ -155,17 +157,17 @@
 
 ### 用户故事 3 的测试 ⚠️
 
-- [-] T064 [P] [US3] 在 tests/unit/task/user-query.test.ts 中编写 UserQuery 创建和响应处理的单元测试
+- [-] T064 [P] [US3] 在 tests/unit/task/ask.test.ts 中编写 AskManager 创建和响应处理的单元测试（~~user-query.test.ts 已重命名为 ask.test.ts~~）
 - [-] T065 [P] [US3] 在 tests/unit/task/user-interaction.test.ts 中编写 waiting_user 状态转换和超时的单元测试
-- [-] T066 [P] [US3] 在 tests/integration/user-interaction.test.ts 中编写用户交互流程的集成测试
+- [-] ~~T066 [P] [US3] 在 tests/integration/user-interaction.test.ts 中编写用户交互流程的集成测试~~（已移除：用户交互集成测试已删除）
 
 ### 用户故事 3 的实现
 
-- [-] T067 [US3] 在 src/task/user-query.ts 中实现 UserQuery 管理器
+- [-] T067 [US3] 在 src/task/ask.ts 中实现 AskManager（~~user-query.ts 已重命名为 ask.ts，UserQueryManager 已重命名为 AskManager~~）
 - [-] T068 [US3] 在 src/task/manager.ts 中扩展 TaskManager 以支持 waiting_user 状态转换和恢复
-- [-] T069 [US3] 在 src/task/user-query.ts 中实现用户响应处理器
-- [-] T070 [US3] 在 src/orchestrator/index.ts 中扩展编排器循环以支持 inquiry 任务类型
-- [-] T071 [US3] 在 src/task/user-query.ts 中实现无限期等待策略
+- [-] T069 [US3] 在 src/task/ask.ts 中实现用户响应处理器（~~user-query.ts 已重命名为 ask.ts~~）
+- [-] T070 [US3] 在 src/orchestrator/index.ts 中扩展编排器循环以支持用户询问流程（~~inquiry 任务类型已移除，统一通过 ask 命令处理用户交互~~）
+- [-] T071 [US3] 在 src/task/ask.ts 中实现无限期等待策略（~~user-query.ts 已重命名为 ask.ts~~）
 - [-] T072 [US3] 在 src/cli/utils.ts 中添加 CLI 交互式提示用于用户查询
 
 ---
@@ -237,12 +239,12 @@
 **目的**: 边界情况、性能、文档和影响多个用户故事的改进
 
 - [ ] T094 [P] 边界情况：并发任务限制——当运行数量 >= maxConcurrentTasks 时将新任务加入队列，在 src/task/queue.ts 中实现
-- [ ] T095 [P] 边界情况：Agent 崩溃恢复——检测无响应的 agent，30 秒内重新分配任务，在 src/orchestrator/scheduler.ts 中实现
-- [ ] T096 边界情况：任务超时处理——自动终止超时任务并标记为失败，在 src/orchestrator/scheduler.ts 中实现
+- [ ] T095 [P] 边界情况：Agent 崩溃恢复——检测无响应的 agent，30 秒内重新分配任务，在 src/orchestrator/index.ts 中实现（~~scheduler.ts 已移除，逻辑内联到 Orchestrator 中~~）
+- [ ] T096 边界情况：任务超时处理——自动终止超时任务并标记为失败，在 src/orchestrator/index.ts 中实现（~~scheduler.ts 已移除，逻辑内联到 Orchestrator 中~~）
 - [ ] T097 [P] 边界情况：网络中断——操作前持久化状态，恢复后继续执行，在 src/storage/task-store.ts 中实现
-- [ ] T098 边界情况：会话断开——验证 AI 会话关闭后任务在后台继续运行、会话绑定被清理、可通过 status 重连（FR-019），在 src/orchestrator/reporter.ts 中实现
+- [ ] T098 边界情况：会话断开——验证 AI 会话关闭后任务在后台继续运行、会话绑定被清理、可通过 status 重连（FR-019），在 src/orchestrator/index.ts 中实现（~~reporter.ts 已移除，会话管理逻辑内联到 Orchestrator 中~~）
 - [ ] T099 边界情况：同一会话中多次 specify——当会话已绑定活跃任务时拒绝第二次 /agentic.specify，显示包含当前任务 ID 的错误信息，在 src/cli/commands/specify.ts 中实现
-- [ ] T100 [P] 在 src/orchestrator/scheduler.ts 中实现 Agent 心跳超时检测（默认 30 秒无响应判定崩溃，拒绝已重分配任务的迟到提交，FR-023）
+- [ ] T100 [P] 在 src/orchestrator/index.ts 中实现 Agent 心跳超时检测（默认 30 秒无响应判定崩溃，拒绝已重分配任务的迟到提交，FR-023）（~~scheduler.ts 已移除，逻辑内联到 Orchestrator 中~~）
 - [ ] T101a [P] 在 src/task/queue.ts 中实现资源耗尽检测（内存超阈值时暂停接受新任务并记录告警日志，FR-024）
 - [ ] T101b [P] 为 src/ 中所有公共 API 添加完整的 JSDoc 文档
 - [ ] T101 性能验证：确保任务启动 < 30 秒（SC-001）、分类 < 5 秒（SC-002）、状态查询 < 2 秒（SC-005）；SC-007 并发延迟对比测试——5 个并发任务下单任务操作延迟增加不超过 50%（与单任务基线对比）
@@ -265,7 +267,7 @@
 ### 用户故事依赖
 
 - **用户故事 1 (P1)**: 基础层（第二阶段）完成后即可开始——不依赖其他故事。**这是 MVP。** 包含会话生命周期（报告器、后台执行）。
-- **用户故事 2 (P2)**: 基础层（第二阶段）完成后即可开始——扩展 US1 的组件（TaskManager、Dispatcher、Orchestrator），但应可独立测试
+- **用户故事 2 (P2)**: 基础层（第二阶段）完成后即可开始——扩展 US1 的组件（TaskManager、Orchestrator），但应可独立测试（~~Dispatcher 已移除~~）
 - **用户故事 3 (P2)**: 基础层（第二阶段）完成后即可开始——扩展编排器循环，但应可独立测试
 - **用户故事 4 (P3)**: 基础层（第二阶段）完成后即可开始——使用 US1 评分流程中的 TaskHistory，但调节者模块是独立的
 - **用户故事 5 (P3)**: 依赖 US1 的会话报告器（第三阶段）——扩展它以支持断线重连和活跃任务列表
@@ -296,20 +298,20 @@
 
 ```bash
 # 同时启动用户故事 1 的所有测试（TDD——先写测试）：
-Task: T025 "TaskClassifier 单元测试，在 tests/unit/task/classifier.test.ts"
+~~Task: T025 "TaskClassifier 单元测试，在 tests/unit/task/classifier.test.ts"~~（已移除）
 Task: T026 "TaskManager 单元测试，在 tests/unit/task/manager.test.ts"
 Task: T027 "TaskQueue 单元测试，在 tests/unit/task/queue.test.ts"
 Task: T028 "AgentLoader 单元测试，在 tests/unit/agents/loader.test.ts"
 Task: T029 "AgentRegistry 单元测试，在 tests/unit/agents/registry.test.ts"
 Task: T030 "评分器单元测试，在 tests/unit/scorer/evaluator.test.ts"
-Task: T031 "Orchestrator 主循环单元测试，在 tests/unit/orchestrator/loop.test.ts"
-Task: T032 "Session 报告器单元测试，在 tests/unit/orchestrator/reporter.test.ts"
+Task: T031 "Orchestrator 主循环测试，通过集成测试（task-flow）覆盖"（~~downstream-flow、session-lifecycle 已移除~~）
+~~Task: T032 "Session 报告器单元测试，在 tests/unit/orchestrator/reporter.test.ts"~~（已移除）
 Task: T033 "任务流程集成测试，在 tests/integration/task-flow.test.ts"
-Task: T034 "会话生命周期集成测试，在 tests/integration/session-lifecycle.test.ts"
+~~Task: T034 "会话生命周期集成测试，在 tests/integration/session-lifecycle.test.ts"~~（已移除）
 
 # 然后启动可独立执行的实现任务：
 Task: T035 "Agent 加载器，在 src/agents/loader.ts"          # [P] 可与 T038 并行
-Task: T038 "任务分类器，在 src/task/classifier.ts"           # [P] 可与 T035 并行
+~~Task: T038 "任务分类器，在 src/task/classifier.ts"~~（已移除）
 Task: T042 "评分器，在 src/scorer/evaluator.ts"      # [P] 可与 T035、T038 并行
 ```
 
@@ -336,11 +338,12 @@ Task: T042 "评分器，在 src/scorer/evaluator.ts"      # [P] 可与 T035、T0
 2. 完成第二阶段：基础层（关键——阻塞所有故事）
 3. 完成第三阶段：用户故事 1
 4. **停下来验证**：独立测试用户故事 1
-   - 执行：`agentic init` → 创建配置和目录
-   - 执行：`agentic specify "生成一个 README 文件"` → 创建任务，AI 会话进入轮询模式，每 10 秒更新进度
-   - 验证：任务被分类、分配、执行、评分，结果在同一会话中返回
-   - 验证：驳回时重试有效（最多 3 次）
+   - 执行：`agentic init` → 交互式选择平台（cursor/claude）、创建配置和目录结构
+   - 执行：`agentic specify <agentId> "生成一个 README 文件"` → 创建任务、写入 prompt 文件、委派给外部 AI 会话、返回 taskId/sessionId
+   - 验证：任务被分类、分配、prompt 写入文件后委派给 Cursor/Claude CLI 执行
+   - 验证：配置 scorer.agentId 时，`agentic complete` 后触发 Scorer Agent 评分，驳回时附带反馈重试（最多 3 次）
    - 验证：关闭会话不会停止任务（后台执行）
+   - 验证：`agentic status <taskId>` 查询任务状态、`agentic wait <taskId>` 阻塞等待终态
 5. 如果就绪则部署/演示——**这就是 MVP**
 
 ### 增量交付
@@ -378,11 +381,12 @@ Task: T042 "评分器，在 src/scorer/evaluator.ts"      # [P] 可与 T035、T0
 - TDD：先写测试，确认失败，再实现
 - 每个任务或逻辑分组完成后提交
 - 可在任何检查点停下来独立验证故事
-- 技术栈：citty（CLI）、unstorage（存储）、c12（配置）、hookable（事件）、consola（日志）、vitest（测试）
+- 技术栈：citty（CLI）、unstorage（存储）、c12（配置）、hookable（事件）、consola（日志）、vitest（测试）、tinyexec（进程启动）、@clack/prompts（交互式提示）
 - 所有状态通过 unstorage 的 fs 驱动持久化（可配置）
 - FSM + 事件日志用于任务状态管理（依据 research.md 决策）
 - 仅 AI Agent 评分（通过 scorer.agentId 配置启用，依据 spec.md 评分机制决策）
 - CBR + 规则用于调解（依据 research.md 决策）
-- Promise 池用于并发控制（依据 research.md 决策）
+- FIFO 队列 + maxConcurrentTasks 并发限制用于并发控制
+- 平台委派模型：executor 将 prompt 写入文件后通过 cursor/claude CLI 启动外部 AI 会话，任务保持 running 直到外部 agent 报告完成
 - 会话报告器处理 AI 会话绑定和进度轮询（依据 spec.md 会话生命周期）
 - 任务在后台运行，与会话生命周期解耦（依据 FR-019）

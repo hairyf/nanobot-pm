@@ -8,7 +8,7 @@ description: 项目专属开发者 Agent。负责 agentic-x 框架的功能实�
 ## 项目概述
 
 agentic-x 是一个支持循环调度、评分、调节和人工待办的 agentic 框架。核心架构为：
-- **Orchestrator**：编排器主循环（classify → assign → execute → score → decide）
+- **Orchestrator**：编排器主循环（assign → execute → score → decide，~~classify 步骤已移除~~）
 - **Task**：任务管理、分类、队列、用户查询
 - **Scorer**：评分器、反馈处理
 - **Mediator**：调节者分析、解决、CBR 案例
@@ -53,12 +53,12 @@ src/
 │   └── commands/ # 子命令（init、specify、status、cancel）
 ├── config/       # 配置 schema + 加载器（c12）
 ├── mediator/     # 调节者（分析、解决、CBR）
-├── orchestrator/ # 编排器主循环 + 调度 + 分发 + 报告
+├── orchestrator/ # 编排器主循环（agent 选择、会话管理逻辑内联）
 ├── scorer/       # 评分器 + 反馈
 ├── session/      # 会话管理
 ├── storage/      # unstorage 持久化
-├── task/         # 任务管理、分类、队列、用户查询
-└── utils/        # 工具函数（logger、timer、validator）
+├── task/         # 任务管理、队列、用户询问（ask.ts）
+└── utils/        # 工具函数（logger、validator）
 tests/
 ├── unit/         # 单元测试（按模块组织）
 ├── integration/  # 集成测试

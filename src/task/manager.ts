@@ -1,5 +1,5 @@
 import type { HistoryStoreInterface, TaskStoreInterface } from '../storage/types'
-import type { Task, TaskStatus, TaskType } from './types'
+import type { Task, TaskStatus } from './types'
 import { taskCreated } from '../utils/logger'
 import { generateUUID } from '../utils/validator'
 
@@ -24,12 +24,11 @@ export class TaskManager {
     return TRANSITIONS[from]?.includes(to) ?? false
   }
 
-  async createTask(options: { description: string, type: TaskType, parentTaskId?: string, depth?: number, timeout?: number, maxRetries?: number, metadata?: Record<string, unknown>, tags?: string[] }): Promise<Task> {
+  async createTask(options: { description: string, parentTaskId?: string, depth?: number, timeout?: number, maxRetries?: number, metadata?: Record<string, unknown>, tags?: string[] }): Promise<Task> {
     const now = Date.now()
     const task: Task = {
       id: generateUUID(),
       description: options.description,
-      type: options.type,
       status: 'pending',
       childTaskIds: [],
       depth: options.depth ?? 0,
@@ -46,9 +45,9 @@ export class TaskManager {
     await this.historyStore.appendEvent(task.id, {
       type: 'created',
       timestamp: now,
-      data: { description: task.description, type: task.type, parentTaskId: task.parentTaskId },
+      data: { description: task.description, parentTaskId: task.parentTaskId },
     })
-    taskCreated(task.id, task.description, task.type)
+    taskCreated(task.id, task.description)
     return task
   }
 
@@ -101,7 +100,7 @@ export class TaskManager {
     return updated
   }
 
-  async createChildTask(parentTaskId: string, options: { description: string, type: TaskType }): Promise<Task> {
+  async createChildTask(parentTaskId: string, options: { description: string }): Promise<Task> {
     const parentTask = await this.taskStore.get(parentTaskId)
     if (!parentTask)
       throw new Error(`Parent task not found: ${parentTaskId}`)
@@ -112,7 +111,6 @@ export class TaskManager {
 
     const childTask = await this.createTask({
       description: options.description,
-      type: options.type,
       parentTaskId,
       depth: newDepth,
     })
@@ -127,7 +125,7 @@ export class TaskManager {
     await this.historyStore.appendEvent(parentTaskId, {
       type: 'created',
       timestamp: Date.now(),
-      data: { description: `Child task created: ${childTask.id}`, type: 'downstream', parentTaskId },
+      data: { description: `Child task created: ${childTask.id}`, parentTaskId },
     })
 
     return childTask

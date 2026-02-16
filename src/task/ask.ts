@@ -1,14 +1,14 @@
 import type { Storage } from 'unstorage'
 import type { HistoryStoreInterface, TaskStoreInterface } from '../storage/types'
 import type { QueryOption, UserQuery } from './types'
-import { HistoryStore } from '../storage/history-store'
-import { TaskStore } from '../storage/task-store'
+import { HistoryStore } from '../storage/history'
+import { TaskStore } from '../storage/task'
 import { generateUUID } from '../utils/validator'
 
 const QUERY_PREFIX = 'queries:'
 const INDEX_QUERY_TASK_PREFIX = 'index:query-task:'
 
-export class UserQueryManager {
+export class AskManager {
   private taskStore: TaskStoreInterface
   private historyStore: HistoryStoreInterface
 
@@ -20,14 +20,10 @@ export class UserQueryManager {
   async createQuery(options: {
     taskId: string
     question: string
-    options: QueryOption[]
+    options?: QueryOption[]
     context?: string
     metadata?: Record<string, unknown>
   }): Promise<UserQuery> {
-    if (!options.options || options.options.length === 0) {
-      throw new Error('At least 1 option is required')
-    }
-
     // Check for pending concurrent query
     const existingQuery = await this.getQueryByTask(options.taskId)
     if (existingQuery) {
@@ -40,7 +36,7 @@ export class UserQueryManager {
       taskId: options.taskId,
       question: options.question,
       context: options.context,
-      options: options.options,
+      options: options.options ?? [],
       waitIndefinitely: true,
       reminderInterval: 86400000,
       createdAt: now,
@@ -98,9 +94,12 @@ export class UserQueryManager {
       throw new Error(`Query not found: ${queryId}`)
     }
 
-    const optionExists = query.options.some(opt => opt.id === selectedOptionId)
-    if (!optionExists) {
-      throw new Error(`Invalid option: ${selectedOptionId}`)
+    // Only validate option if options array is not empty
+    if (query.options.length > 0) {
+      const optionExists = query.options.some(opt => opt.id === selectedOptionId)
+      if (!optionExists) {
+        throw new Error(`Invalid option: ${selectedOptionId}`)
+      }
     }
 
     const now = Date.now()

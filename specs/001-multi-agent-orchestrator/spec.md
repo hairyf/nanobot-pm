@@ -17,7 +17,7 @@
 
 **验收场景**:
 
-1. **Given** 用户在 AI Agents 环境中，**When** 用户执行 `/agentic.specify "创建一个用户认证模块"`，**Then** 系统检查子代理定义，判断任务类型为"本职任务"，分配给开发 Agent 处理
+1. **Given** 用户在 AI Agents 环境中，**When** 用户执行 `/agentic.specify "创建一个用户认证模块"`，**Then** 系统检查子代理定义，分配给开发 Agent 处理
 2. **Given** 开发 Agent 完成任务，**When** 任务提交评分，**Then** 评分者对任务结果进行评分（通过/驳回）
 3. **Given** 评分结果为"通过"，**When** 无上游任务，**Then** 系统将结果返回给用户
 4. **Given** 评分结果为"驳回"，**When** 评分者提供反馈，**Then** 系统将任务重新分配给原 Agent 进行修正
@@ -54,7 +54,7 @@
 
 **验收场景**:
 
-1. **Given** 父 Agent 正在处理任务，**When** Agent 识别出需要专业领域处理的子任务（如数据库设计），**Then** 系统创建子任务（类型为 downstream）并建立父子关系
+1. **Given** 父 Agent 正在处理任务，**When** Agent 识别出需要专业领域处理的子任务（如数据库设计），**Then** 系统创建子任务并建立父子关系
 2. **Given** 子任务已创建，**When** 系统分配给专长 Agent，**Then** 专长 Agent 开始处理子任务
 3. **Given** 专长 Agent 完成子任务，**When** 评分通过，**Then** 结果返回给父 Agent，父 Agent 继续处理主任务
 4. **Given** 子任务评分驳回，**When** 重试次数未超限，**Then** 专长 Agent 重新处理子任务
@@ -72,7 +72,7 @@
 
 **验收场景**:
 
-1. **Given** Agent 正在处理任务，**When** Agent 识别出需要用户决策的情况，**Then** 系统判断任务类型为"需要询问"并暂停处理
+1. **Given** Agent 正在处理任务，**When** Agent 识别出需要用户决策的情况，**Then** 系统暂停处理并进入 waiting_user 状态
 2. **Given** 系统已暂停处理，**When** 系统向用户发送询问，**Then** 用户收到清晰的问题描述和可选项
 3. **Given** 用户提供响应，**When** 系统接收到用户输入，**Then** Agent 继续处理任务并应用用户的决策
 4. **Given** 用户长时间未响应，**When** 系统持续等待，**Then** 系统无限期保持任务在"等待用户输入"状态，定期（每 24 小时）发送提醒通知，但不会超时终止任务
@@ -139,7 +139,7 @@
 
 - **FR-001**: 系统必须能够解析 `/agentic.specify <task-description>`（AI 环境）或 `agentic specify <agentId> <task-description>`（CLI）命令并提取任务描述。AI 环境中由 AI 自行决定分配给哪个 agent；CLI 形式需显式指定 agentId（双参数）。输入验证：描述不能为空且长度不超过 1000 字符
 - **FR-002**: 系统必须能够扫描 AI Agents 环境的子代理定义目录（`.cursor/agents/`、`.claude/agents/` 等宿主环境标准目录）并列出可用的 Agent
-- **FR-003**: 系统必须能够根据任务描述自动判断任务类型（local/downstream/inquiry），判断策略：先匹配已注册 Agent 的能力标签（capabilities + specialties），若匹配则为 local；若任务需要多个专长领域协作则为 downstream；若任务描述含决策点或用户偏好则为 inquiry
+~~- **FR-003**: 系统必须能够根据任务描述自动判断任务类型（local/downstream/inquiry）~~（已移除：任务类型分类功能已删除，所有任务统一处理）
 - **FR-004**: 系统必须能够将任务分配给合适的 Agent 并启动处理流程。匹配规则：按 Agent 能力标签（capabilities）与任务关键词的重合度排序，优先选择空闲 Agent
 - **FR-005**: 系统必须能够在任务完成后自动触发评分流程。评分者类型仅支持 AI Agent 评分（通过 `scorer.agentId` 配置启用，由独立 AI Agent 会话执行评分）。配置了 `scorer.agentId` 时评分流程生效，未配置时跳过评分直接完成
 - **FR-006**: 评分者必须能够对任务结果进行评分（通过/驳回）并提供反馈
@@ -171,7 +171,7 @@
 
 ### 关键实体
 
-- **Task（任务）**: 用户提交的工作单元，包含描述、类型（local/downstream/inquiry）、状态（pending/running/waiting_user/waiting_eval/completed/failed/cancelled）、分配的 Agent、父子关系、嵌套深度（最大 10）、重试计数（retryCount）、最大重试次数（maxRetries，默认 3）、评分结果（score）、创建/更新时间
+- **Task（任务）**: 用户提交的工作单元，包含描述、状态（pending/running/waiting_user/waiting_eval/completed/failed/cancelled）、分配的 Agent、父子关系、嵌套深度（最大 10）、重试计数（retryCount）、最大重试次数（maxRetries，默认 3）、评分结果（score）、创建/更新时间（~~类型字段已移除：任务类型分类功能已删除~~）
 - **Agent（代理）**: 执行任务的智能体，包含名称、能力标签（capabilities）、专长领域（specialties）、状态（idle/busy/offline）、重试策略
 - **Score（评分）**: 任务处理结果的评估，包含评分结果（pass/reject）、置信度、反馈内容、评分者类型（agent）、评分者 ID、评分时间
 - **Mediation（调节）**: 调节者的介入记录，包含问题诊断（问题类型：loop/timeout/error/dependency）、解决方案列表、调节结果（success/failed/escalated）、调节时间
@@ -230,7 +230,7 @@
 - 调节者具有足够的上下文信息（任务历史、评分记录、Agent 能力列表）来分析问题并提供有效建议
 - 任务描述是清晰的，能够被系统正确解析和理解
 - 用户可能不会立即响应询问 — 系统无限期等待用户响应，不会因超时而丢失任务状态
-- Agent 与编排器运行在同一 Node.js 进程中（in-process），通过函数调用通信，不使用 IPC 或 HTTP
+- 编排器（Orchestrator）在 Node.js 进程中运行，管理任务状态和调度。Agent 执行采用平台委派模型：executor 将 prompt 写入文件后通过平台适配器（cursor/claude CLI）启动外部 AI 会话，任务保持 running 状态直到外部 agent 通过 `agentic complete` 命令报告完成
 - 采用持久化状态机模型：每步执行到决策点后持久化状态并结束，事件驱动下一步执行（非长驻协程）
 
 ## 依赖 *(可选)*
@@ -269,11 +269,11 @@
 - Q: sources/claude-flow 依赖是否仍有效？ → A: 已移除，内部依赖更新为 hookable + c12 + unstorage
 - Q: 子任务部分失败时的处理策略？ → A: 已完成子任务结果保留，失败子任务按重试策略处理后升级给调节者
 - Q: SessionBinding 是否需要作为关键实体？ → A: 是，用于支持会话生命周期和断线重连
-- Q: Agent 与编排器之间的通信协议？ → A: 纯本地 in-process，Agent 作为同进程中的函数调用。采用状态机模型：每次执行跑到下一个决策点后结束，状态持久化到 unstorage，事件触发时加载状态继续执行。不需要 IPC 或 HTTP
+- Q: Agent 与编排器之间的通信协议？ → A: 编排器管理任务状态和调度（in-process）。Agent 执行采用平台委派模型：executor 构建 prompt 写入文件，通过 cursor/claude CLI 启动外部 AI 会话，外部 agent 通过 CLI 命令（complete/score/ask/subtask）与编排器交互。采用持久化状态机：状态持久化到 unstorage，CLI 命令触发状态转换
 - Q: 系统的可观测性需求级别？ → A: 仅 consola 控制台日志，关键操作（任务创建/分配/评分/调节/完成/失败）输出人类可读日志，无结构化格式或指标收集要求
 - Q: SC-007"无性能下降"的具体含义？ → A: 5 个并发任务时，单任务操作延迟增加不超过 50%
 - Q: specify 命令是否需要显式指定 agentId？ → A: CLI 形式使用 `agentic specify <agentId> <description>`（双参数），AI 环境的 `/agentic.specify` 由 AI 自行决定分配给哪个 agent
-- Q: executor 配置是否需要暴露给用户？ → A: 不需要。executor 使用 Orchestrator 内部的 processTask() 机制（scheduler → assign → executeTask），不调用外部 API。defineConfig 中不包含 executor 配置
+- Q: executor 配置是否需要暴露给用户？ → A: 不需要。executor 使用 Orchestrator 内部的 processTask() 机制（assign → executeTask），通过平台适配器委派给外部 AI 会话。平台选择通过 `agentic.config.ts` 的 `platform` 字段配置（cursor/claude），defineConfig 中不包含 executor 内部配置（~~scheduler 已移除，agent 选择逻辑内联到 Orchestrator 中~~）
 - Q: 是否需要 complete 命令？ → A: 是。子 Agent 通过 `agentic complete <taskId> --output "..."` 报告完成，系统自动评分
 - Q: status --wait 和 status --watch 的区别？ → A: `agentic wait <taskId>` 为独立命令，阻塞直到终态或 waiting_user；`agentic status --watch` 启动永久监控进程持续输出进度
 - Q: AI Agent 评分如何触发？ → A: 配置 `scorer.agentId` 后，`agentic complete` 将状态转为 `waiting_eval` 并启动 Scorer Agent 会话；Scorer Agent 调用 `agentic score` 提交评分结果

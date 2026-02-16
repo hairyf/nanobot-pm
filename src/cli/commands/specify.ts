@@ -59,7 +59,6 @@ export const specifyCommand = defineCommand({
         taskId,
         agentId,
         description,
-        type: task?.type ?? 'local',
         status: task?.status ?? 'unknown',
         ...(sessionId && { sessionId }),
         prompt,

@@ -45,10 +45,6 @@ export const askCommand = defineCommand({
     const query = await queryManager.createQuery({
       taskId,
       question,
-      options: [
-        { id: 'option-yes', label: 'Yes', value: true },
-        { id: 'option-no', label: 'No', value: false },
-      ],
     })
 
     outputJson({

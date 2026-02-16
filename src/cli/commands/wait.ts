@@ -2,7 +2,7 @@ import process from 'node:process'
 import { defineCommand } from 'citty'
 import { join } from 'pathe'
 import { syncTranscriptToLog } from '../../agents/transcript-sync'
-import { UserQueryManager } from '../../task/user-query'
+import { AskManager } from '../../task/ask'
 import { createCliContext } from '../helpers'
 import { formatDuration, formatStatus, formatUserQuery, outputJson } from '../utils'
 
@@ -112,7 +112,7 @@ async function showTaskResult(
   // If task is waiting_user, include the pending query
   let pendingQuery
   if (task.status === 'waiting_user') {
-    const queryManager = new UserQueryManager(storage)
+    const queryManager = new AskManager(storage)
     const query = await queryManager.getQueryByTask(taskId)
     if (query) {
       pendingQuery = {
@@ -132,7 +132,6 @@ async function showTaskResult(
         task: {
           id: task.id,
           description: task.description,
-          type: task.type,
           status: task.status,
           assignedAgent: task.assignedAgent,
           createdAt: task.createdAt,

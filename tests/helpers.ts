@@ -41,7 +41,6 @@ export function createMockTask(overrides?: Partial<Task>): Task {
   return {
     id: generateUUID(),
     description: 'Test task',
-    type: 'local',
     status: 'pending',
     childTaskIds: [],
     depth: 0,

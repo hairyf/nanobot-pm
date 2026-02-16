@@ -2,21 +2,21 @@ import type { QueryOption } from '../../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { UserQueryManager } from '../../../src/task/user-query'
+import { AskManager } from '../../../src/task/ask'
 import { createMockTask } from '../../helpers'
 
 describe('userQueryManager', () => {
-  let queryManager: UserQueryManager
+  let queryManager: AskManager
   let storage: ReturnType<typeof createStorage>
 
   beforeEach(() => {
     storage = createStorage({ driver: memoryDriver() })
-    queryManager = new UserQueryManager(storage)
+    queryManager = new AskManager(storage)
   })
 
   describe('createQuery', () => {
     it('creates a UserQuery with question and options', async () => {
-      const task = createMockTask({ id: 'task-1', type: 'inquiry' })
+      const task = createMockTask({ id: 'task-1' })
       const options: QueryOption[] = [
         { id: 'opt-1', label: 'Option A', value: 'a' },
         { id: 'opt-2', label: 'Option B', value: 'b' },
@@ -59,16 +59,15 @@ describe('userQueryManager', () => {
       expect(query.metadata).toEqual({ source: 'test' })
     })
 
-    it('validates that at least 1 option is required', async () => {
+    it('allows creating query without options', async () => {
       const task = createMockTask({ id: 'task-3' })
 
-      await expect(
-        queryManager.createQuery({
-          taskId: task.id,
-          question: 'No options?',
-          options: [],
-        }),
-      ).rejects.toThrow(/at least 1 option/i)
+      const query = await queryManager.createQuery({
+        taskId: task.id,
+        question: 'No options?',
+      })
+
+      expect(query.options).toEqual([])
     })
 
     it('stores the query in unstorage', async () => {

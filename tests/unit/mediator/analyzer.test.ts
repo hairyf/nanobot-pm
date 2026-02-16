@@ -4,7 +4,7 @@ import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MediatorAnalyzer } from '../../../src/mediator/analyzer'
-import { HistoryStore } from '../../../src/storage/history-store'
+import { HistoryStore } from '../../../src/storage/history'
 import { generateUUID } from '../../../src/utils/validator'
 import { createMockTask } from '../../helpers'
 
@@ -166,7 +166,6 @@ describe('mediatorAnalyzer', () => {
             timestamp: Date.now(),
             data: {
               description: 'Parent task',
-              type: 'local',
             },
           },
         ] as TaskEvent[],
@@ -210,7 +209,6 @@ describe('mediatorAnalyzer', () => {
             timestamp: Date.now(),
             data: {
               description: 'Normal task',
-              type: 'local',
             },
           },
         ] as TaskEvent[],

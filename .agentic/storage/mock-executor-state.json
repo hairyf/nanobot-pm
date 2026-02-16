@@ -1,0 +1,11 @@
+{
+  "counter": 1,
+  "executions": {
+    "mock_1": {
+      "executionId": "mock_1",
+      "prompt": "# Agent: developer\n\n## Task\n\n**Type:** local\n\n### Description\n\n创建一个 README\n\n## Instructions\n\nComplete the task described above. When finished, commit your changes and provide a clear summary of what was accomplished.",
+      "status": "finished",
+      "summary": "Mock execution completed: # Agent: developer\n\n## Task\n\n**Type:** local\n\n### Description\n\n创建一个 README\n\n## Instructions\n\nComplet"
+    }
+  }
+}

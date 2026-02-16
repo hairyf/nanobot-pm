@@ -20,6 +20,7 @@
 - pathe (跨平台路径处理)
 - consola (日志输出，仅控制台人类可读格式)
 - zod (数据验证，用于 Task/Score/Mediation 等实体的 schema 验证)
+- @clack/prompts (交互式 CLI 提示，用于 init 命令)
 
 **存储**: unstorage (文件系统驱动) - 任务状态、历史记录、评分记录
 **测试**: Vitest (单元测试 + 集成测试)
@@ -142,6 +143,12 @@ src/
 │   ├── executor.ts     # Agent 执行器
 │   └── types.ts        # Agent 类型
 │
+├── executor/           # 执行器工具
+│   ├── index.ts        # 导出入口
+│   ├── mock.ts         # 测试用 Mock 执行器
+│   ├── prompt-builder.ts # Agent 提示构建器
+│   └── types.ts        # 执行器类型定义
+│
 ├── storage/            # 存储层（已存在，扩展）
 │   ├── index.ts        # 存储接口
 │   ├── task-store.ts   # 任务存储
@@ -150,9 +157,11 @@ src/
 │
 ├── cli/                # CLI 命令（已存在，扩展）
 │   ├── index.ts        # CLI 入口
+│   ├── helpers.ts      # CLI 上下文初始化（Orchestrator、存储、Agent 加载）
 │   ├── commands/       # 命令实现
 │   │   ├── specify.ts  # /agentic.specify
 │   │   ├── status.ts   # /agentic.status
+│   │   ├── complete.ts # agentic complete（子 Agent 报告完成）
 │   │   ├── cancel.ts   # /agentic.cancel
 │   │   └── init.ts     # /agentic.init
 │   └── utils.ts        # CLI 工具函数
@@ -376,14 +385,14 @@ Phase 1 设计完成后，重新检查宪法合规性：
 
 - Node.js: >= 18.0.0
 - TypeScript: ^5.0.0
-- citty: ^0.1.6
-- unstorage: ^1.10.0
-- c12: ^1.11.0
-- hookable: ^5.5.0
-- pathe: ^1.1.0
-- consola: ^3.2.0
-- zod: ^3.23.0
-- vitest: ^2.0.0
+- citty: ^0.2.0
+- unstorage: ^1.17.4
+- c12: ^3.3.0
+- hookable: ^6.0.1
+- pathe: ^2.0.3
+- consola: ^3.4.2
+- zod: ^4.3.6
+- vitest: ^4.0.15
 
 ### 开发工具
 

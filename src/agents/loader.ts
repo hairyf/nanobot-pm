@@ -8,12 +8,17 @@ export async function loadAgents(directories: string[]): Promise<TaskAgent[]> {
     try {
       const files = await readdir(dir)
       for (const file of files) {
-        if (!file.endsWith('.json'))
-          continue
         try {
-          const content = await readFile(join(dir, file), 'utf-8')
-          const parsed = JSON.parse(content)
-          agents.push(toTaskAgent(parsed))
+          if (file.endsWith('.json')) {
+            const content = await readFile(join(dir, file), 'utf-8')
+            const parsed = JSON.parse(content)
+            agents.push(toTaskAgent(parsed))
+          }
+          else if (file.endsWith('.md')) {
+            const content = await readFile(join(dir, file), 'utf-8')
+            const parsed = parseAgentMarkdown(content, file)
+            agents.push(toTaskAgent(parsed))
+          }
         }
         catch { /* skip invalid files */ }
       }
@@ -21,6 +26,58 @@ export async function loadAgents(directories: string[]): Promise<TaskAgent[]> {
     catch { /* directory may not exist */ }
   }
   return agents
+}
+
+function parseAgentMarkdown(content: string, filename: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+
+  // Parse frontmatter
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  if (fmMatch) {
+    const fmBlock = fmMatch[1]
+    for (const line of fmBlock.split(/\r?\n/)) {
+      const colonIndex = line.indexOf(':')
+      if (colonIndex > 0) {
+        const key = line.slice(0, colonIndex).trim()
+        const value = line.slice(colonIndex + 1).trim()
+        result[key] = value
+      }
+    }
+  }
+
+  // Derive id from frontmatter name or filename
+  if (!result.id) {
+    result.id = (result.name as string) ?? filename.replace(/\.md$/, '')
+  }
+
+  // Parse ## Capabilities section
+  result.capabilities = parseMdListSection(content, 'Capabilities')
+
+  // Parse ## Specialties section
+  result.specialties = parseMdListSection(content, 'Specialties')
+
+  // Wrap description into metadata
+  if (result.description) {
+    result.metadata = { description: result.description }
+  }
+
+  return result
+}
+
+function parseMdListSection(content: string, heading: string): string[] {
+  const pattern = new RegExp(`##\\s+${heading}\\s*\\r?\\n([\\s\\S]*?)(?=\\n##\\s|$)`)
+  const match = content.match(pattern)
+  if (!match)
+    return []
+
+  const items: string[] = []
+  for (const line of match[1].split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('- ')) {
+      items.push(trimmed.slice(2).trim())
+    }
+  }
+  return items
 }
 
 function toTaskAgent(raw: Record<string, unknown>): TaskAgent {

@@ -1,7 +1,9 @@
 import { defineCommand, runMain } from 'citty'
 import packageJSON from '../../package.json' with { type: 'json' }
+import { completeCommand } from './commands/complete'
 import { initCommand } from './commands/init'
 import { specifyCommand } from './commands/specify'
+import { statusCommand } from './commands/status'
 
 const main = defineCommand({
   meta: {
@@ -12,6 +14,8 @@ const main = defineCommand({
   subCommands: {
     init: initCommand,
     specify: specifyCommand,
+    complete: completeCommand,
+    status: statusCommand,
   },
 })
 

@@ -86,39 +86,39 @@
 
 > **注意：先编写这些测试，确保在实现之前它们是失败的**
 
-- [ ] T025 [P] [US1] 在 tests/unit/task/classifier.test.ts 中编写 TaskClassifier 的单元测试（分类 local/downstream/inquiry）
-- [ ] T026 [P] [US1] 在 tests/unit/task/manager.test.ts 中编写 TaskManager 的单元测试（创建任务、FSM 状态转换、重试逻辑）
-- [ ] T027 [P] [US1] 在 tests/unit/task/queue.test.ts 中编写 TaskQueue 的单元测试（入队、出队、并发限制）
-- [ ] T028 [P] [US1] 在 tests/unit/agents/loader.test.ts 中编写 AgentLoader 的单元测试（从目录读取 Agent 定义）
-- [ ] T029 [P] [US1] 在 tests/unit/agents/registry.test.ts 中编写 AgentRegistry 的单元测试（注册、匹配能力、选择最佳）
-- [ ] T030 [P] [US1] 在 tests/unit/scorer/evaluator.test.ts 中编写评分器的单元测试（基于规则的评分、启发式阈值）
-- [ ] T031 [P] [US1] 在 tests/unit/orchestrator/loop.test.ts 中编写 Orchestrator 主循环的单元测试（完整 classify→assign→execute→score 循环）
-- [ ] T032 [P] [US1] 在 tests/unit/orchestrator/reporter.test.ts 中编写 Session 报告器的单元测试（绑定会话到任务、按间隔发送进度、检测会话关闭）
-- [ ] T033 [P] [US1] 在 tests/integration/task-flow.test.ts 中编写基础任务流程的集成测试（使用 mock agent 的端到端测试）
-- [ ] T034 [P] [US1] 在 tests/integration/session-lifecycle.test.ts 中编写会话生命周期的集成测试（specify → 自动轮询 → 完成 → 会话结束）
+- [X] T025 [P] [US1] 在 tests/unit/task/classifier.test.ts 中编写 TaskClassifier 的单元测试（分类 local/downstream/inquiry）
+- [X] T026 [P] [US1] 在 tests/unit/task/manager.test.ts 中编写 TaskManager 的单元测试（创建任务、FSM 状态转换、重试逻辑）
+- [X] T027 [P] [US1] 在 tests/unit/task/queue.test.ts 中编写 TaskQueue 的单元测试（入队、出队、并发限制）
+- [X] T028 [P] [US1] 在 tests/unit/agents/loader.test.ts 中编写 AgentLoader 的单元测试（从目录读取 Agent 定义）
+- [X] T029 [P] [US1] 在 tests/unit/agents/registry.test.ts 中编写 AgentRegistry 的单元测试（注册、匹配能力、选择最佳）
+- [X] T030 [P] [US1] 在 tests/unit/scorer/evaluator.test.ts 中编写评分器的单元测试（基于规则的评分、启发式阈值）
+- [X] T031 [P] [US1] 在 tests/unit/orchestrator/loop.test.ts 中编写 Orchestrator 主循环的单元测试（完整 classify→assign→execute→score 循环）
+- [X] T032 [P] [US1] 在 tests/unit/orchestrator/reporter.test.ts 中编写 Session 报告器的单元测试（绑定会话到任务、按间隔发送进度、检测会话关闭）
+- [X] T033 [P] [US1] 在 tests/integration/task-flow.test.ts 中编写基础任务流程的集成测试（使用 mock agent 的端到端测试）
+- [X] T034 [P] [US1] 在 tests/integration/session-lifecycle.test.ts 中编写会话生命周期的集成测试（specify → 自动轮询 → 完成 → 会话结束）
 
 ### 用户故事 1 的实现
 
-- [ ] T035 [US1] 在 src/agents/loader.ts 中实现 Agent 加载器（扫描 AI Agents 环境标准目录如 .cursor/agents/、.claude/agents/，目录列表通过配置 agents.directories 指定，解析 JSON 定义）
-- [ ] T036 [US1] 在 src/agents/index.ts 中实现 Agent 注册表（register、unregister、getById、listAvailable、matchByCapabilities）
-- [ ] T037 [US1] 在 src/agents/executor.ts 中实现 Agent 执行器（通过 agent 执行任务、处理结果/错误、遵守超时）
-- [ ] T038 [US1] 在 src/task/classifier.ts 中实现任务分类器（分析描述关键词、匹配 agent 能力、确定类型）
-- [ ] T039 [US1] 在 src/task/manager.ts 中实现带 FSM 的任务管理器（创建任务、转换状态、验证转换、处理重试）。采用持久化状态机步进模型：每步从 unstorage 加载状态→执行到决策点→持久化状态→结束，事件驱动下一步执行
-- [ ] T040 [US1] 在 src/task/queue.ts 中实现带 Promise 池的任务队列（入队、出队、遵守配置中的 maxConcurrentTasks 限制）
-- [ ] T041 [US1] 在 src/task/index.ts 中实现任务模块入口点及重导出
-- [ ] T042 [US1] 在 src/scorer/evaluator.ts 中实现评分器（可配置规则、加权标准、启发式阈值调整）
-- [ ] T043 [US1] 在 src/scorer/feedback.ts 中实现评分反馈处理器（解析反馈、生成改进建议）
-- [ ] T044 [US1] 在 src/scorer/index.ts 中实现评分器入口点（评估任务结果、决定通过/驳回）
-- [ ] T045 [US1] 在 src/orchestrator/index.ts 中使用 hookable 实现编排器事件钩子（task:created、task:assigned、task:completed、score:submitted）
-- [ ] T046 [US1] 在 src/orchestrator/scheduler.ts 中实现调度器（将任务分配给最佳 agent、使用退避策略管理重试）
-- [ ] T047 [US1] 在 src/orchestrator/dispatcher.ts 中实现分发器（按能力选择 agent、检查可用性、回退到队列）
-- [ ] T048 [US1] 在 src/orchestrator/index.ts 中实现编排器主循环（classify → assign → execute → score → 决定下一步操作）。每一步为独立的状态机步进（加载状态→执行→持久化→退出），由 hookable 事件驱动步进衔接
-- [ ] T049 [US1] 在 src/orchestrator/reporter.ts 中实现会话报告器（将会话绑定到任务、每 10 秒可配置间隔自动轮询进度、检测会话关闭/断开，FR-012/FR-019）
-- [ ] T050 [US1] 在 src/orchestrator/index.ts 中实现后台任务执行（将任务循环与会话生命周期解耦、会话断开时任务继续运行、在 unstorage 中持久化会话绑定，FR-019）
-- [ ] T051 [US1] 在 src/cli/commands/init.ts 中实现 CLI init 命令（创建 .agentic/ 目录、配置文件、存储目录、agents 目录）
-- [ ] T052 [US1] 在 src/cli/commands/specify.ts 中实现 CLI specify 命令（解析任务描述、创建任务、启动编排器循环、绑定会话报告器进行自动轮询、保持活跃会话直到任务完成/失败）
-- [ ] T053 [US1] 在 src/cli/utils.ts 中实现 CLI 工具函数（表格格式化、进度显示、错误处理、JSON 输出）
-- [ ] T054 [US1] 在 src/cli/index.ts 中使用 citty 搭建 CLI 入口点（注册 init、specify 命令、--help、--version）
+- [X] T035 [US1] 在 src/agents/loader.ts 中实现 Agent 加载器（扫描 AI Agents 环境标准目录如 .cursor/agents/、.claude/agents/，目录列表通过配置 agents.directories 指定，解析 JSON 定义）
+- [X] T036 [US1] 在 src/agents/registry.ts 中实现 Agent 注册表（register、unregister、getById、listAvailable、matchByCapabilities）
+- [X] T037 [US1] 在 src/agents/executor.ts 中实现 Agent 执行器（通过 agent 执行任务、处理结果/错误、遵守超时）
+- [X] T038 [US1] 在 src/task/classifier.ts 中实现任务分类器（分析描述关键词、匹配 agent 能力、确定类型）
+- [X] T039 [US1] 在 src/task/manager.ts 中实现带 FSM 的任务管理器（创建任务、转换状态、验证转换、处理重试）。采用持久化状态机步进模型：每步从 unstorage 加载状态→执行到决策点→持久化状态→结束，事件驱动下一步执行
+- [X] T040 [US1] 在 src/task/queue.ts 中实现带 Promise 池的任务队列（入队、出队、遵守配置中的 maxConcurrentTasks 限制）
+- [X] T041 [US1] 在 src/task/index.ts 中实现任务模块入口点及重导出
+- [X] T042 [US1] 在 src/scorer/evaluator.ts 中实现评分器（可配置规则、加权标准、启发式阈值调整）
+- [X] T043 [US1] 在 src/scorer/feedback.ts 中实现评分反馈处理器（解析反馈、生成改进建议）
+- [X] T044 [US1] 在 src/scorer/index.ts 中实现评分器入口点（评估任务结果、决定通过/驳回）
+- [X] T045 [US1] 在 src/orchestrator/index.ts 中使用 hookable 实现编排器事件钩子（task:created、task:assigned、task:completed、score:submitted）
+- [X] T046 [US1] 在 src/orchestrator/scheduler.ts 中实现调度器（将任务分配给最佳 agent、使用退避策略管理重试）
+- [X] T047 [US1] 在 src/orchestrator/dispatcher.ts 中实现分发器（按能力选择 agent、检查可用性、回退到队列）
+- [X] T048 [US1] 在 src/orchestrator/index.ts 中实现编排器主循环（classify → assign → execute → score → 决定下一步操作）。每一步为独立的状态机步进（加载状态→执行→持久化→退出），由 hookable 事件驱动步进衔接
+- [X] T049 [US1] 在 src/orchestrator/reporter.ts 中实现会话报告器（将会话绑定到任务、每 10 秒可配置间隔自动轮询进度、检测会话关闭/断开，FR-012/FR-019）
+- [X] T050 [US1] 在 src/orchestrator/index.ts 中实现后台任务执行（将任务循环与会话生命周期解耦、会话断开时任务继续运行、在 unstorage 中持久化会话绑定，FR-019）
+- [X] T051 [US1] 在 src/cli/commands/init.ts 中实现 CLI init 命令（创建 .agentic/ 目录、配置文件、存储目录、agents 目录）
+- [X] T052 [US1] 在 src/cli/commands/specify.ts 中实现 CLI specify 命令（解析任务描述、创建任务、启动编排器循环、绑定会话报告器进行自动轮询、保持活跃会话直到任务完成/失败）
+- [X] T053 [US1] 在 src/cli/utils.ts 中实现 CLI 工具函数（表格格式化、进度显示、错误处理、JSON 输出）
+- [X] T054 [US1] 在 src/cli/index.ts 中使用 citty 搭建 CLI 入口点（注册 init、specify 命令、--help、--version）
 
 **检查点**: 此时，用户故事 1 应完全可用——用户可以创建任务，系统自动分类、分配给 agent、执行、评分并返回结果。驳回时重试最多 3 次。`/agentic.specify` 命令维护一个持久 AI 会话，每 10 秒自动轮询进度。会话断开后任务在后台继续运行。这就是 MVP。
 
@@ -188,19 +188,19 @@
 
 > **注意：先编写这些测试，确保在实现之前它们是失败的**
 
-- [ ] T073 [P] [US4] 在 tests/unit/mediator/analyzer.test.ts 中编写 Mediator 分析器的单元测试（从任务历史诊断问题类型）
-- [ ] T074 [P] [US4] 在 tests/unit/mediator/resolver.test.ts 中编写 Mediator 解决器的单元测试（生成并排序解决方案）
-- [ ] T075 [P] [US4] 在 tests/unit/mediator/cbr.test.ts 中编写 CBR 案例存储和检索的单元测试
-- [ ] T076 [P] [US4] 在 tests/integration/mediation.test.ts 中编写调解流程的集成测试（3 次驳回 → 触发 → 诊断 → 解决）
+- [X] T073 [P] [US4] 在 tests/unit/mediator/analyzer.test.ts 中编写 Mediator 分析器的单元测试（从任务历史诊断问题类型）
+- [X] T074 [P] [US4] 在 tests/unit/mediator/resolver.test.ts 中编写 Mediator 解决器的单元测试（生成并排序解决方案）
+- [X] T075 [P] [US4] 在 tests/unit/mediator/cbr.test.ts 中编写 CBR 案例存储和检索的单元测试
+- [X] T076 [P] [US4] 在 tests/integration/mediation.test.ts 中编写调解流程的集成测试（3 次驳回 → 触发 → 诊断 → 解决）
 
 ### 用户故事 4 的实现
 
-- [ ] T077 [US4] 在 src/mediator/analyzer.ts 中实现 Mediator 分析器（分析任务历史、识别问题类型：循环/超时/错误/依赖）
-- [ ] T078 [US4] 在 src/mediator/resolver.ts 中实现 Mediator 解决器（生成解决方案：重试/重新分配/拆分/升级，按置信度排序）
-- [ ] T079 [US4] 在 src/mediator/index.ts 中实现 CBR 案例存储（存储成功的调解记录、按问题类型查找相似案例）
-- [ ] T080 [US4] 在 src/mediator/index.ts 中实现调解规则引擎（循环 → 重新分配并排除当前 agent、超时 → 拆分、依赖 → 升级）
-- [ ] T081 [US4] 在 src/orchestrator/index.ts 中扩展编排器循环以支持调解触发（检测 retryCount >= 3、调用调节者、应用解决方案）
-- [ ] T082 [US4] 在 src/mediator/resolver.ts 中实现当调节者无法解决时升级给用户（创建带诊断信息的 UserQuery）
+- [X] T077 [US4] 在 src/mediator/analyzer.ts 中实现 Mediator 分析器（分析任务历史、识别问题类型：循环/超时/错误/依赖）
+- [X] T078 [US4] 在 src/mediator/resolver.ts 中实现 Mediator 解决器（生成解决方案：重试/重新分配/拆分/升级，按置信度排序）
+- [X] T079 [US4] 在 src/mediator/index.ts 中实现 CBR 案例存储（存储成功的调解记录、按问题类型查找相似案例）
+- [X] T080 [US4] 在 src/mediator/index.ts 中实现调解规则引擎（循环 → 重新分配并排除当前 agent、超时 → 拆分、依赖 → 升级）
+- [X] T081 [US4] 在 src/orchestrator/index.ts 中扩展编排器循环以支持调解触发（检测 retryCount >= 3、调用调节者、应用解决方案）
+- [X] T082 [US4] 在 src/mediator/resolver.ts 中实现当调节者无法解决时升级给用户（创建带诊断信息的 UserQuery）
 
 **检查点**: 此时，所有用户故事 1-4 均可正常工作。系统能在任务卡住时通过调解进行自我修复。
 
@@ -230,6 +230,7 @@
 - [ ] T091 [US5] 在 src/cli/commands/status.ts 中实现历史记录显示命令（显示完整事件时间线、评分、调解记录、统计数据）
 - [ ] T092 [US5] 在 src/cli/utils.ts 中为所有 CLI 命令添加 JSON 输出格式支持（--json 标志）
 - [ ] T093 [US5] 在 src/cli/index.ts 中将 status 和 cancel 命令注册到 CLI 入口点
+- [ ] T093a [US5] 在 src/cli/commands/complete.ts 中实现 CLI complete 命令（子 Agent 调用以报告任务完成、自动触发评分、根据评分结果重试或标记完成/失败）
 
 **检查点**: 所有用户故事现已独立可用。完整系统具备监控、断线重连和取消功能。
 

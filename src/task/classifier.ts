@@ -10,14 +10,27 @@ export function classifyTask(description: string, agents: TaskAgent[]): TaskType
     return 'inquiry'
   }
 
-  // Check how many agents match
+  // Check for downstream indicators (complexity heuristics)
+  if (agents.length > 1) {
+    const downstreamPatterns = [
+      /full[-\s]?stack/i,
+      /multi[-\s]?(?:component|part|domain|agent)/i,
+      /complex/i,
+      /(?:build|create|develop|implement)\s+(?:\S.*)?(?:application|system|project|platform)/i,
+      /components/i,
+    ]
+    if (downstreamPatterns.some(pattern => pattern.test(desc))) {
+      return 'downstream'
+    }
+  }
+
+  // Check how many agents match via tag matching
   const matchingAgents = agents.filter((agent) => {
     const allTags = [...agent.capabilities, ...agent.specialties].map(s => s.toLowerCase())
     return allTags.some(tag => desc.includes(tag))
   })
 
   if (matchingAgents.length > 1) {
-    // Multiple specialty domains needed
     return 'downstream'
   }
 

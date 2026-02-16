@@ -1,18 +1,22 @@
 import process from 'node:process'
 import { defineCommand } from 'citty'
-import { loadAgents } from '../../agents/loader'
-import { resolveConfig } from '../../config'
-import { Orchestrator } from '../../orchestrator'
-import { createStorageInstance } from '../../storage'
+import { buildAgentPrompt } from '../../executor/prompt-builder'
 import { logger } from '../../utils/logger'
-import { generateUUID, validateTaskInput } from '../../utils/validator'
+import { validateTaskInput } from '../../utils/validator'
+import { createCliContext } from '../helpers'
+import { outputJson } from '../utils'
 
 export const specifyCommand = defineCommand({
   meta: {
     name: 'specify',
-    description: 'Create and execute a task',
+    description: 'Register a task, assign an agent, and start internal processing',
   },
   args: {
+    agentId: {
+      type: 'positional',
+      description: 'Agent ID to assign',
+      required: true,
+    },
     description: {
       type: 'positional',
       description: 'Task description',
@@ -20,43 +24,48 @@ export const specifyCommand = defineCommand({
     },
   },
   async run({ args }) {
+    const agentId = args.agentId as string
     const description = args.description as string
+
     const validation = validateTaskInput(description)
     if (!validation.valid) {
       logger.error(validation.error)
       process.exit(1)
     }
 
-    const config = await resolveConfig()
-    const storage = createStorageInstance(config.storage.basePath)
-    const orchestrator = new Orchestrator({ config, storage })
+    const { orchestrator, agents } = await createCliContext()
 
-    const agents = await loadAgents(config.agents.directories)
-    for (const agent of agents) {
-      orchestrator.registry.register(agent)
+    // Validate agent exists
+    const agent = agents.find(a => a.id === agentId)
+    if (!agent) {
+      logger.error(`Agent not found: ${agentId}`)
+      logger.info(`Available agents: ${agents.map(a => a.id).join(', ')}`)
+      process.exit(1)
     }
 
-    if (orchestrator.registry.listAll().length === 0) {
-      logger.warn('No agents found. Please create agent definitions in your agents directory.')
-      logger.info('Example: .cursor/agents/developer.json')
-      return
-    }
+    // Use Orchestrator's internal submitTask with pre-assigned agent
+    // This triggers: scheduler → assign → executeTask (agent function)
+    const taskId = await orchestrator.submitTask(description, { agentId })
 
-    const sessionId = generateUUID()
-    const reporter = orchestrator.createReporter()
+    // Build prompt for sub-agent reference
+    const task = await orchestrator.taskManager.getTask(taskId)
+    const prompt = buildAgentPrompt(agent, task!)
 
-    const taskId = await orchestrator.submitTask(description)
-    logger.info(`Task created: ${taskId}`)
+    // Store prompt in task metadata
+    await orchestrator.taskManager.updateMetadata(taskId, {
+      agentPrompt: prompt,
+    })
 
-    reporter.bind(sessionId, taskId)
-
-    reporter.onProgress = async () => {
-      const task = await orchestrator.taskManager.getTask(taskId)
-      if (task) {
-        logger.info(`[${new Date().toLocaleTimeString()}] ${task.status} | ${task.description}`)
-      }
-    }
-
-    logger.info('Task submitted. Processing...')
+    outputJson({
+      success: true,
+      data: {
+        taskId,
+        agentId,
+        description,
+        type: task?.type ?? 'local',
+        status: task?.status ?? 'completed',
+        prompt,
+      },
+    })
   },
 })

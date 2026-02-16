@@ -34,7 +34,10 @@ export const OrchestratorConfigSchema = z.object({
   memoryThreshold: z.number().default(500 * 1024 * 1024), // 500MB in bytes
 })
 
+export const PlatformSchema = z.enum(['cursor', 'claude'])
+
 export const AppConfigSchema = z.object({
+  platform: PlatformSchema.optional(),
   orchestrator: OrchestratorConfigSchema.optional(),
   scorer: ScorerConfigSchema.optional(),
   mediator: MediatorConfigSchema.optional(),
@@ -45,6 +48,7 @@ export const AppConfigSchema = z.object({
 export type AppConfigInput = z.input<typeof AppConfigSchema>
 
 export interface AppConfig {
+  platform?: z.infer<typeof PlatformSchema>
   orchestrator: z.infer<typeof OrchestratorConfigSchema>
   scorer: z.infer<typeof ScorerConfigSchema>
   mediator: z.infer<typeof MediatorConfigSchema>
@@ -59,6 +63,7 @@ export type AgentsConfig = z.infer<typeof AgentsConfigSchema>
 export function parseAppConfig(raw: unknown): AppConfig {
   const parsed = AppConfigSchema.parse(raw ?? {})
   return {
+    platform: parsed.platform,
     orchestrator: OrchestratorConfigSchema.parse(parsed.orchestrator ?? {}),
     scorer: ScorerConfigSchema.parse(parsed.scorer ?? {}),
     mediator: MediatorConfigSchema.parse(parsed.mediator ?? {}),

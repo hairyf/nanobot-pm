@@ -57,6 +57,11 @@ export class HistoryStore implements HistoryStoreInterface {
     const history = (await this.storage.getItem<TaskHistory>(key)) ?? createEmptyHistory(taskId)
     history.mediations.push(mediation)
     history.statistics.mediationCount = history.mediations.length
+    history.events.push({
+      type: 'mediated',
+      timestamp: Date.now(),
+      mediationId: mediation.id,
+    })
     await this.storage.setItem(key, history)
   }
 }

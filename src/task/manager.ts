@@ -76,4 +76,100 @@ export class TaskManager {
   async getTask(taskId: string): Promise<Task | undefined> {
     return this.taskStore.get(taskId)
   }
+
+  async updateMetadata(taskId: string, metadata: Record<string, unknown>): Promise<Task> {
+    const task = await this.taskStore.get(taskId)
+    if (!task)
+      throw new Error(`Task not found: ${taskId}`)
+    const updated = {
+      ...task,
+      metadata: { ...task.metadata, ...metadata },
+      updatedAt: Date.now(),
+    }
+    await this.taskStore.save(updated)
+    return updated
+  }
+
+  async assignTask(taskId: string, agentId: string): Promise<Task> {
+    const task = await this.taskStore.get(taskId)
+    if (!task)
+      throw new Error(`Task not found: ${taskId}`)
+    const updated = { ...task, assignedAgent: agentId, updatedAt: Date.now() }
+    await this.taskStore.save(updated)
+    await this.historyStore.appendEvent(taskId, { type: 'assigned', timestamp: Date.now(), agentId })
+    return updated
+  }
+
+  async createChildTask(parentTaskId: string, options: { description: string, type: TaskType }): Promise<Task> {
+    const parentTask = await this.taskStore.get(parentTaskId)
+    if (!parentTask)
+      throw new Error(`Parent task not found: ${parentTaskId}`)
+
+    const newDepth = parentTask.depth + 1
+    if (newDepth > 10)
+      throw new Error(`Maximum task depth (10) exceeded for task ${parentTaskId}`)
+
+    const childTask = await this.createTask({
+      description: options.description,
+      type: options.type,
+      parentTaskId,
+      depth: newDepth,
+    })
+
+    // Update parent's childTaskIds
+    const updatedParent = {
+      ...parentTask,
+      childTaskIds: [...parentTask.childTaskIds, childTask.id],
+      updatedAt: Date.now(),
+    }
+    await this.taskStore.save(updatedParent)
+    await this.historyStore.appendEvent(parentTaskId, {
+      type: 'created',
+      timestamp: Date.now(),
+      data: { description: `Child task created: ${childTask.id}`, type: 'downstream', parentTaskId },
+    })
+
+    return childTask
+  }
+
+  async getChildTasks(parentTaskId: string): Promise<Task[]> {
+    return this.taskStore.getByParent(parentTaskId)
+  }
+
+  async hasCircularDependency(taskId: string, parentChain: string[] = []): Promise<boolean> {
+    if (parentChain.length === 0)
+      return false
+    if (parentChain.includes(taskId))
+      return true
+
+    // Check if taskId is an ancestor of any parentChain member
+    for (const proposedId of parentChain) {
+      let currentId: string | undefined = proposedId
+      const visited = new Set<string>()
+      while (currentId) {
+        if (currentId === taskId)
+          return true
+        if (visited.has(currentId))
+          break
+        visited.add(currentId)
+        const task = await this.taskStore.get(currentId)
+        currentId = task?.parentTaskId
+      }
+    }
+
+    // Check if any parentChain member is an ancestor of taskId
+    let currentId: string | undefined = taskId
+    const visited = new Set<string>()
+    while (currentId) {
+      if (parentChain.includes(currentId))
+        return true
+      if (visited.has(currentId))
+        break
+      visited.add(currentId)
+      const task = await this.taskStore.get(currentId)
+      currentId = task?.parentTaskId
+    }
+
+    return false
+  }
 }

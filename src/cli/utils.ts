@@ -44,3 +44,12 @@ export interface JsonOutput {
 export function outputJson(result: JsonOutput): void {
   console.log(JSON.stringify(result, null, 2))
 }
+
+export function formatUserQuery(query: { question: string, options: Array<{ id: string, label: string, description?: string }> }): string {
+  const lines = [`\n❓ ${query.question}\n`]
+  query.options.forEach((opt, i) => {
+    lines.push(`  ${i + 1}. ${opt.label}${opt.description ? ` - ${opt.description}` : ''}`)
+  })
+  lines.push('')
+  return lines.join('\n')
+}

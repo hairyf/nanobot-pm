@@ -11,6 +11,10 @@ export class AgentRegistry {
     return this.agents.delete(id)
   }
 
+  get(id: string): TaskAgent | undefined {
+    return this.agents.get(id)
+  }
+
   getById(id: string): TaskAgent | undefined {
     return this.agents.get(id)
   }
@@ -38,7 +42,16 @@ export class AgentRegistry {
 
   selectBest(keywords: string[]): TaskAgent | undefined {
     const matches = this.matchByCapabilities(keywords)
-    return matches[0]
+    if (matches.length > 0)
+      return matches[0]
+    // Fallback: if no capability match, return any available agent
+    const available = this.listAvailable()
+    return available[0]
+  }
+
+  hasSuitableAgent(keywords: string[]): boolean {
+    const matches = this.matchByCapabilities(keywords)
+    return matches.length > 0
   }
 
   updateStatus(id: string, status: TaskAgent['status'], currentTaskId?: string): void {

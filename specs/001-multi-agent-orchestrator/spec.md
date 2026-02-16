@@ -137,7 +137,7 @@
 
 > **命令格式说明**: 在 AI Agents 环境（Cursor、Claude Code）中使用 `/agentic.specify` 格式（点号分隔），在终端 CLI 中使用 `agentic specify` 格式（空格分隔）。两者功能等价，仅调用方式不同。
 
-- **FR-001**: 系统必须能够解析 `/agentic.specify <task-description>`（AI 环境）或 `agentic specify <task-description>`（CLI）命令并提取任务描述。输入验证：描述不能为空且长度不超过 1000 字符
+- **FR-001**: 系统必须能够解析 `/agentic.specify <task-description>`（AI 环境）或 `agentic specify <agentId> <task-description>`（CLI）命令并提取任务描述。AI 环境中由 AI 自行决定分配给哪个 agent；CLI 形式需显式指定 agentId（双参数）。输入验证：描述不能为空且长度不超过 1000 字符
 - **FR-002**: 系统必须能够扫描 AI Agents 环境的子代理定义目录（`.cursor/agents/`、`.claude/agents/` 等宿主环境标准目录）并列出可用的 Agent
 - **FR-003**: 系统必须能够根据任务描述自动判断任务类型（local/downstream/inquiry），判断策略：先匹配已注册 Agent 的能力标签（capabilities + specialties），若匹配则为 local；若任务需要多个专长领域协作则为 downstream；若任务描述含决策点或用户偏好则为 inquiry
 - **FR-004**: 系统必须能够将任务分配给合适的 Agent 并启动处理流程。匹配规则：按 Agent 能力标签（capabilities）与任务关键词的重合度排序，优先选择空闲 Agent
@@ -161,6 +161,7 @@
 - **FR-022**: 当用户通过 `/agentic.status` 重新连接到处于 waiting_user 状态的任务时，系统必须立即展示待回答的问题
 - **FR-023**: 系统必须通过心跳超时机制（默认 30 秒无响应）检测 Agent 崩溃，并自动重新分配任务给其他可用 Agent
 - **FR-024**: 当系统内存占用超过配置阈值（默认 500MB）时，系统必须暂停接受新任务并记录告警日志
+- **FR-025**: 系统必须能够支持任务完成命令（agentic complete <task-id> --output "描述"）。子 Agent 在完成任务后调用此命令报告完成，系统自动触发评分流程并根据评分结果决定下一步操作
 
 ### 关键实体
 
@@ -265,3 +266,6 @@
 - Q: Agent 与编排器之间的通信协议？ → A: 纯本地 in-process，Agent 作为同进程中的函数调用。采用状态机模型：每次执行跑到下一个决策点后结束，状态持久化到 unstorage，事件触发时加载状态继续执行。不需要 IPC 或 HTTP
 - Q: 系统的可观测性需求级别？ → A: 仅 consola 控制台日志，关键操作（任务创建/分配/评分/调节/完成/失败）输出人类可读日志，无结构化格式或指标收集要求
 - Q: SC-007"无性能下降"的具体含义？ → A: 5 个并发任务时，单任务操作延迟增加不超过 50%
+- Q: specify 命令是否需要显式指定 agentId？ → A: CLI 形式使用 `agentic specify <agentId> <description>`（双参数），AI 环境的 `/agentic.specify` 由 AI 自行决定分配给哪个 agent
+- Q: executor 配置是否需要暴露给用户？ → A: 不需要。executor 使用 Orchestrator 内部的 processTask() 机制（scheduler → assign → executeTask），不调用外部 API。defineConfig 中不包含 executor 配置
+- Q: 是否需要 complete 命令？ → A: 是。子 Agent 通过 `agentic complete <taskId> --output "..."` 报告完成，系统自动评分

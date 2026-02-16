@@ -12,6 +12,10 @@ export interface ExecuteOptions {
   platform?: Agent
   /** Base path for log files (defaults to '.agentic'). */
   basePath?: string
+  /** Override the default system prompt (e.g. for scorer agents). */
+  systemPrompt?: string
+  /** Override the default task prompt (e.g. for scorer agents). */
+  taskPrompt?: string
 }
 
 /**
@@ -30,8 +34,8 @@ export interface ExecuteOptions {
  */
 export async function executeTask(agent: TaskAgent, task: Task, options?: ExecuteOptions): Promise<TaskResult> {
   const startTime = Date.now()
-  const system = buildSystemPrompt(agent, task.id)
-  const prompt = buildTaskPrompt(task)
+  const system = options?.systemPrompt ?? buildSystemPrompt(agent, task.id)
+  const prompt = options?.taskPrompt ?? buildTaskPrompt(task)
 
   let sessionId: string | undefined
 

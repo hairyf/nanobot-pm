@@ -20,9 +20,8 @@ describe('config', () => {
         memoryThreshold: 500 * 1024 * 1024,
       })
       expect(config.scorer).toEqual({
-        autoScore: true,
+        autoScore: false,
         scoreThreshold: 0.8,
-        rules: [],
       })
       expect(config.mediator).toEqual({
         triggerThreshold: 3,
@@ -54,7 +53,7 @@ describe('config', () => {
     it('has expected default values', () => {
       expect(defaultConfig).toBeDefined()
       expect(defaultConfig.orchestrator.maxConcurrentTasks).toBe(5)
-      expect(defaultConfig.scorer.autoScore).toBe(true)
+      expect(defaultConfig.scorer).toBeDefined()
       expect(defaultConfig.mediator.triggerThreshold).toBe(3)
       expect(defaultConfig.storage.driver).toBe('fs')
       expect(defaultConfig.agents.autoLoad).toBe(true)

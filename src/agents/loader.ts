@@ -92,6 +92,7 @@ function toTaskAgent(raw: Record<string, unknown>): TaskAgent {
     config: {
       maxConcurrentTasks: r.config?.maxConcurrentTasks ?? 1,
       timeout: r.config?.timeout ?? 1800000,
+      description: r.config?.description ?? r.description ?? (r.metadata?.description as string | undefined),
       retryStrategy: {
         maxRetries: r.config?.retryStrategy?.maxRetries ?? 3,
         backoff: r.config?.retryStrategy?.backoff ?? 'exponential',

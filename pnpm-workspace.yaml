@@ -1,9 +1,15 @@
+catalogMode: prefer
+
+ignoreWorkspaceRootCheck: true
+
+shellEmulator: true
+
+trustPolicy: no-downgrade
 packages:
   - playground
   - docs
   - packages/*
   - examples/*
-
 catalog:
   '@hairy/utils': ^1.47.0
   '@vitest/coverage-v8': 4.0.17
@@ -15,9 +21,6 @@ catalog:
   pathe: ^2.0.3
   unstorage: ^1.17.4
   zod: ^4.3.6
-
-catalogMode: prefer
-
 catalogs:
   cli:
     '@antfu/eslint-config': ^6.6.1
@@ -41,13 +44,6 @@ catalogs:
     yaml: ^2.8.2
   types:
     '@types/node': ^25.0.1
-
-ignoreWorkspaceRootCheck: true
-
 onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks
-
-shellEmulator: true
-
-trustPolicy: no-downgrade

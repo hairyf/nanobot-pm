@@ -8,6 +8,7 @@ export const TaskStatusSchema = z.enum([
   'pending',
   'running',
   'waiting_user',
+  'waiting_eval',
   'completed',
   'failed',
   'cancelled',
@@ -80,6 +81,11 @@ const TaskEventStartedSchema = z.object({
   type: z.literal('started'),
   timestamp: z.number(),
 })
+const TaskEventEvaluatingSchema = z.object({
+  type: z.literal('evaluating'),
+  timestamp: z.number(),
+  scorerAgentId: z.string().optional(),
+})
 const TaskEventScoredSchema = z.object({
   type: z.literal('scored'),
   timestamp: z.number(),
@@ -140,6 +146,7 @@ export const TaskEventSchema = z.discriminatedUnion('type', [
   TaskEventCreatedSchema,
   TaskEventAssignedSchema,
   TaskEventStartedSchema,
+  TaskEventEvaluatingSchema,
   TaskEventScoredSchema,
   TaskEventMediatedSchema,
   TaskEventUserQuerySchema,

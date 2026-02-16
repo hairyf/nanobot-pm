@@ -1,9 +1,8 @@
-import type { QueryOption, UserQuery } from '../../../src/task/types'
+import type { QueryOption } from '../../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { UserQueryManager } from '../../../src/task/user-query'
-import { generateUUID } from '../../../src/utils/validator'
 import { createMockTask } from '../../helpers'
 
 describe('userQueryManager', () => {

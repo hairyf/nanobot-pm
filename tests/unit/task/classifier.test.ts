@@ -25,6 +25,12 @@ describe('taskClassifier (classifyTask)', () => {
     expect(classifyTask('请选择方案', mockAgents)).toBe('inquiry')
   })
 
+  it('does not false-positive on substrings (e.g. "world" should not trigger "or" inquiry)', () => {
+    expect(classifyTask('create hello world file', mockAgents)).toBe('local')
+    expect(classifyTask('important work on the project', mockAgents)).toBe('local')
+    expect(classifyTask('export report to CSV format', mockAgents)).toBe('local')
+  })
+
   it('returns \'local\' for tasks with no matching agents (default)', () => {
     const description = 'do something with haskell and rust'
     const noMatchAgents = [createMockAgent({ capabilities: ['typescript'], specialties: [] })]

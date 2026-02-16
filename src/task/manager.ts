@@ -6,8 +6,9 @@ import { generateUUID } from '../utils/validator'
 // Valid state transitions
 const TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   pending: ['running', 'cancelled'],
-  running: ['waiting_user', 'completed', 'failed', 'cancelled'],
+  running: ['waiting_user', 'waiting_eval', 'completed', 'failed', 'cancelled'],
   waiting_user: ['running', 'cancelled'],
+  waiting_eval: ['completed', 'failed', 'running', 'cancelled'],
   completed: [],
   failed: [],
   cancelled: [],

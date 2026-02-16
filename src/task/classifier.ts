@@ -4,9 +4,19 @@ import type { TaskType } from './types'
 export function classifyTask(description: string, agents: TaskAgent[]): TaskType {
   const desc = description.toLowerCase()
 
-  // Check for inquiry indicators
-  const inquiryKeywords = ['choose', 'select', 'decide', 'which', 'or', '选择', '决定', '哪个', '或']
-  if (inquiryKeywords.some(kw => desc.includes(kw))) {
+  // Check for inquiry indicators (use word-boundary regex for short keywords to avoid substring false-positives)
+  const inquiryPatterns = [
+    /\bchoose\b/,
+    /\bselect\b/,
+    /\bdecide\b/,
+    /\bwhich\b/,
+    /\bor\b/,
+    /选择/,
+    /决定/,
+    /哪个/,
+    /或/,
+  ]
+  if (inquiryPatterns.some(pattern => pattern.test(desc))) {
     return 'inquiry'
   }
 

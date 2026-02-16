@@ -1,6 +1,8 @@
 import process from 'node:process'
 import { defineCommand } from 'citty'
-import { evaluate } from '../../scorer/evaluator'
+import { join } from 'pathe'
+import { executeTask } from '../../agents/executor'
+import { buildScorerSystemPrompt, buildScorerTaskPrompt } from '../../agents/prompt-builder'
 import { logger } from '../../utils/logger'
 import { createCliContext } from '../helpers'
 import { outputJson } from '../utils'
@@ -26,7 +28,7 @@ export const completeCommand = defineCommand({
     const taskId = args.taskId as string
     const outputDesc = (args.output as string | undefined) || 'Task completed'
 
-    const { config, taskManager, historyStore } = await createCliContext()
+    const { config, taskManager, historyStore, agents, orchestrator } = await createCliContext()
 
     const task = await taskManager.getTask(taskId)
     if (!task) {
@@ -39,74 +41,117 @@ export const completeCommand = defineCommand({
       process.exit(1)
     }
 
+    const scorerAgentId = config.scorer.agentId
+
+    // --- AI Scorer path: spawn a scorer agent to evaluate ---
+    if (scorerAgentId) {
+      // Store completion output in task metadata for the scorer to read
+      await taskManager.updateMetadata(taskId, { completionOutput: outputDesc })
+
+      // Transition to waiting_eval
+      await taskManager.transitionStatus(taskId, 'waiting_eval')
+      await historyStore.appendEvent(taskId, {
+        type: 'evaluating',
+        timestamp: Date.now(),
+        scorerAgentId,
+      })
+
+      // Load the scorer agent definition
+      const scorerAgent = agents.find(a => a.id === scorerAgentId)
+      if (!scorerAgent) {
+        logger.error(`Scorer agent not found: ${scorerAgentId}. Available agents: ${agents.map(a => a.id).join(', ')}`)
+        // Fallback: transition directly to completed (graceful degradation)
+        await taskManager.transitionStatus(taskId, 'completed')
+        await historyStore.appendEvent(taskId, {
+          type: 'completed',
+          timestamp: Date.now(),
+          result: { taskId, success: true, output: { message: outputDesc }, duration: 0, metadata: {} },
+        })
+        outputJson({
+          success: true,
+          data: { taskId, status: 'completed', message: 'Scorer agent not found, task auto-completed' },
+        })
+        process.exit(0)
+      }
+
+      // Build scorer prompt
+      const basePath = config.storage.basePath
+      const logFile = join(basePath, 'logs', `${taskId}.log`)
+      const promptFile = join(basePath, 'prompts', `${taskId}.md`)
+
+      const scorerSystem = buildScorerSystemPrompt(scorerAgent, taskId)
+      const scorerTask = buildScorerTaskPrompt(task, outputDesc, logFile, promptFile)
+
+      // Resolve platform adapter
+      const platform = orchestrator.platform
+
+      // Launch scorer agent session
+      try {
+        const result = await executeTask(scorerAgent, task, {
+          platform,
+          basePath,
+          systemPrompt: scorerSystem,
+          taskPrompt: scorerTask,
+        })
+
+        const scorerSessionId = result.metadata?.sessionId as string | undefined
+        await taskManager.updateMetadata(taskId, { scorerSessionId, scorerSystem, scorerTask })
+
+        outputJson({
+          success: true,
+          data: {
+            taskId,
+            status: 'waiting_eval',
+            scorerAgentId,
+            scorerSessionId,
+            message: 'Task submitted for AI evaluation',
+          },
+        })
+      }
+      catch (err) {
+        logger.error(`Failed to launch scorer agent: ${err}`)
+        // Fallback: auto-complete on scorer launch failure
+        await taskManager.transitionStatus(taskId, 'completed')
+        await historyStore.appendEvent(taskId, {
+          type: 'completed',
+          timestamp: Date.now(),
+          result: { taskId, success: true, output: { message: outputDesc }, duration: 0, metadata: {} },
+        })
+        outputJson({
+          success: true,
+          data: { taskId, status: 'completed', message: 'Scorer launch failed, task auto-completed' },
+        })
+      }
+
+      process.exit(0)
+    }
+
+    // --- No scorer configured: complete directly ---
     const duration = Date.now() - (task.startedAt || task.createdAt)
 
-    const result = {
-      taskId: task.id,
-      success: true,
-      output: { message: outputDesc },
-      duration,
-      metadata: { agentId: task.assignedAgent || 'unknown' },
-    }
-
-    const scorerConfig = {
-      scoreThreshold: config.scorer.scoreThreshold,
-      rules: [],
-    }
-    const score = evaluate(task, result, scorerConfig)
-    await historyStore.appendScore(taskId, score)
-
-    if (score.result === 'pass') {
-      await taskManager.transitionStatus(taskId, 'completed')
-      await historyStore.appendEvent(taskId, { type: 'completed', timestamp: Date.now(), result })
-
-      outputJson({
+    await taskManager.transitionStatus(taskId, 'completed')
+    await historyStore.appendEvent(taskId, {
+      type: 'completed',
+      timestamp: Date.now(),
+      result: {
+        taskId: task.id,
         success: true,
-        data: {
-          taskId,
-          status: 'completed',
-          score: { result: score.result, confidence: score.confidence },
-          duration,
-          message: 'Task completed and scored as pass',
-        },
-      })
-    }
-    else {
-      if (task.retryCount < task.maxRetries) {
-        await taskManager.incrementRetry(taskId)
-        await taskManager.transitionStatus(taskId, 'pending')
+        output: { message: outputDesc },
+        duration,
+        metadata: { agentId: task.assignedAgent || 'unknown' },
+      },
+    })
 
-        outputJson({
-          success: false,
-          data: {
-            taskId,
-            status: 'pending',
-            score: { result: score.result, confidence: score.confidence },
-            feedback: score.feedback,
-            suggestions: score.suggestions,
-            retriesRemaining: task.maxRetries - task.retryCount - 1,
-            message: 'Score below threshold, task returned to pending for retry',
-          },
-        })
-      }
-      else {
-        await taskManager.transitionStatus(taskId, 'failed')
-        await historyStore.appendEvent(taskId, {
-          type: 'failed',
-          timestamp: Date.now(),
-          error: { code: 'SCORE_REJECTED', message: `Score ${score.confidence} below threshold after max retries`, recoverable: false },
-        })
+    outputJson({
+      success: true,
+      data: {
+        taskId,
+        status: 'completed',
+        duration,
+        message: 'Task completed (no scorer configured)',
+      },
+    })
 
-        outputJson({
-          success: false,
-          data: {
-            taskId,
-            status: 'failed',
-            score: { result: score.result, confidence: score.confidence },
-            message: 'Task failed: max retries exceeded with score below threshold',
-          },
-        })
-      }
-    }
+    process.exit(0)
   },
 })

@@ -171,12 +171,12 @@ describe('downstream Task Delegation Flow (T057)', () => {
     expect(level1Children.length).toBeGreaterThan(0)
 
     // Check if any level 1 children create their own children
-    let hasNestedChildren = false
+    let _hasNestedChildren = false
     for (const child of level1Children) {
       await new Promise(resolve => setTimeout(resolve, 50))
       const level2Children = await orchestrator.taskManager.getChildTasks(child.id)
       if (level2Children.length > 0) {
-        hasNestedChildren = true
+        _hasNestedChildren = true
         // Verify depth is tracked correctly
         expect(level2Children[0].depth).toBe(2)
         break

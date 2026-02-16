@@ -40,7 +40,7 @@
 
 ### 类型定义
 
-- [X] T006 [P] 在 src/task/types.ts 中定义 Task、TaskType、TaskStatus、TaskResult、TaskError、TaskHistory、TaskEvent、TaskStatistics、UserQuery、QueryOption 类型
+- [X] T006 [P] 在 src/task/types.ts 中定义 Task（含 waiting_eval 状态、retryCount、maxRetries、score、output 字段）、TaskType、TaskStatus、TaskResult、TaskError、TaskHistory、TaskEvent、TaskStatistics、UserQuery、QueryOption 类型
 - [X] T007 [P] 在 src/scorer/types.ts 中定义 Score、ScoreResult、ScoreCriterion、ScoringRule 类型
 - [X] T008 [P] 在 src/mediator/types.ts 中定义 Mediation、Diagnosis、ProblemType、Solution、SolutionType、MediationResult 类型
 - [X] T009 [P] 在 src/agents/types.ts 中定义 Agent、AgentStatus、AgentConfig、RetryStrategy、AgentStatistics 类型
@@ -124,115 +124,111 @@
 
 ---
 
-## 第四阶段：用户故事 2 - 下游任务委派 (优先级: P2)
+## 第四阶段：用户故事 2 - 下游任务委派 (优先级: P2) ⛔ CANCELLED
+
+> **⛔ 已取消**: 需要重新实施并进行人工审核。原有任务定义保留供参考。
 
 **目标**: Agent 遇到需要其他专业领域处理的子任务时，自动识别并委派给下游 Agent，支持父子任务链和子任务结果汇总。
 
-**独立测试**: 创建一个需要多步骤的任务（如"创建一个带有数据库和 API 的 Web 应用"），验证系统能拆分为多个子任务、分别委派给不同 Agent、子任务完成后汇总结果返回。
-
 ### 用户故事 2 的测试 ⚠️
 
-> **注意：先编写这些测试，确保在实现之前它们是失败的**
-
-- [ ] T055 [P] [US2] 在 tests/unit/task/downstream.test.ts 中编写父子任务创建和深度追踪的单元测试
-- [ ] T056 [P] [US2] 在 tests/unit/task/dependency.test.ts 中编写循环依赖检测的单元测试
-- [ ] T057 [P] [US2] 在 tests/integration/downstream-flow.test.ts 中编写多 Agent 委派流程的集成测试
+- [-] T055 [P] [US2] 在 tests/unit/task/downstream.test.ts 中编写父子任务创建和深度追踪的单元测试
+- [-] T056 [P] [US2] 在 tests/unit/task/dependency.test.ts 中编写循环依赖检测的单元测试
+- [-] T057 [P] [US2] 在 tests/integration/downstream-flow.test.ts 中编写多 Agent 委派流程的集成测试
 
 ### 用户故事 2 的实现
 
-- [ ] T058 [US2] 在 src/task/manager.ts 中扩展 TaskManager 以支持父子任务创建（设置 parentTaskId、添加到 childTaskIds、追踪深度）
-- [ ] T059 [US2] 在 src/task/manager.ts 中实现循环依赖检测（检查 parentTaskId 链、强制最大深度 10）
-- [ ] T060 [US2] 在 src/orchestrator/dispatcher.ts 中扩展分发器以支持下游 Agent 选择（按专长查找 agent、排除当前 agent）
-- [ ] T061 [US2] 在 src/orchestrator/index.ts 中扩展编排器循环以支持子任务生命周期（创建子任务 → 分发 → 等待 → 收集结果）
-- [ ] T062 [US2] 在 src/orchestrator/scheduler.ts 中实现子任务结果聚合（等待所有子任务完成、合并结果、返回给父任务）
-- [ ] T063 [US2] 在 src/agents/index.ts 中添加缺失 Agent 检测和用户通知（当找不到合适的 agent 时，FR-015）
-
-**检查点**: 此时，用户故事 1 和 2 应都能正常工作——简单任务直接执行，复杂任务会被分解并委派给多个 agent。
+- [-] T058 [US2] 在 src/task/manager.ts 中扩展 TaskManager 以支持父子任务创建
+- [-] T059 [US2] 在 src/task/manager.ts 中实现循环依赖检测
+- [-] T060 [US2] 在 src/orchestrator/dispatcher.ts 中扩展分发器以支持下游 Agent 选择
+- [-] T061 [US2] 在 src/orchestrator/index.ts 中扩展编排器循环以支持子任务生命周期
+- [-] T062 [US2] 在 src/orchestrator/scheduler.ts 中实现子任务结果聚合
+- [-] T063 [US2] 在 src/agents/index.ts 中添加缺失 Agent 检测和用户通知（FR-015）
 
 ---
 
-## 第五阶段：用户故事 3 - 用户交互与确认 (优先级: P2)
+## 第五阶段：用户故事 3 - 用户交互与确认 (优先级: P2) ⛔ CANCELLED
+
+> **⛔ 已取消**: 需要重新实施并进行人工审核。原有任务定义保留供参考。
 
 **目标**: Agent 遇到需要用户决策的情况时，系统暂停处理、向用户询问、等待响应后继续执行。
 
-**独立测试**: 创建一个有多种实现方案的任务（如"选择数据库：MySQL 或 PostgreSQL"），验证系统能暂停、发送选项给用户、接收响应、继续处理。
-
 ### 用户故事 3 的测试 ⚠️
 
-> **注意：先编写这些测试，确保在实现之前它们是失败的**
-
-- [ ] T064 [P] [US3] 在 tests/unit/task/user-query.test.ts 中编写 UserQuery 创建和响应处理的单元测试
-- [ ] T065 [P] [US3] 在 tests/unit/task/user-interaction.test.ts 中编写 waiting_user 状态转换和超时的单元测试
-- [ ] T066 [P] [US3] 在 tests/integration/user-interaction.test.ts 中编写用户交互流程的集成测试（暂停 → 询问 → 响应 → 恢复）
+- [-] T064 [P] [US3] 在 tests/unit/task/user-query.test.ts 中编写 UserQuery 创建和响应处理的单元测试
+- [-] T065 [P] [US3] 在 tests/unit/task/user-interaction.test.ts 中编写 waiting_user 状态转换和超时的单元测试
+- [-] T066 [P] [US3] 在 tests/integration/user-interaction.test.ts 中编写用户交互流程的集成测试
 
 ### 用户故事 3 的实现
 
-- [ ] T067 [US3] 在 src/task/user-query.ts 中实现 UserQuery 管理器（创建带选项的查询、存储在 unstorage 中、等待响应）
-- [ ] T068 [US3] 在 src/task/manager.ts 中扩展 TaskManager 以支持 waiting_user 状态转换和收到响应后恢复
-- [ ] T069 [US3] 在 src/task/user-query.ts 中实现用户响应处理器（验证响应、更新查询、触发任务恢复）
-- [ ] T070 [US3] 在 src/orchestrator/index.ts 中扩展编排器循环以支持 inquiry 任务类型（检测询问 → 暂停 → 询问用户 → 恢复）
-- [ ] T071 [US3] 在 src/task/user-query.ts 中实现无限期等待策略（任务保持 waiting_user 状态、每 24 小时发送提醒通知、不会因超时终止）
-- [ ] T072 [US3] 在 src/cli/utils.ts 中添加 CLI 交互式提示用于用户查询（显示问题、选项、接受输入）
-
-**检查点**: 此时，用户故事 1-3 应都能独立工作。任务可以直接执行、委派给子 agent、或暂停等待用户输入。
+- [-] T067 [US3] 在 src/task/user-query.ts 中实现 UserQuery 管理器
+- [-] T068 [US3] 在 src/task/manager.ts 中扩展 TaskManager 以支持 waiting_user 状态转换和恢复
+- [-] T069 [US3] 在 src/task/user-query.ts 中实现用户响应处理器
+- [-] T070 [US3] 在 src/orchestrator/index.ts 中扩展编排器循环以支持 inquiry 任务类型
+- [-] T071 [US3] 在 src/task/user-query.ts 中实现无限期等待策略
+- [-] T072 [US3] 在 src/cli/utils.ts 中添加 CLI 交互式提示用于用户查询
 
 ---
 
-## 第六阶段：用户故事 4 - 调节者介入与问题解决 (优先级: P3)
+## 第六阶段：用户故事 4 - 调节者介入与问题解决 (优先级: P3) ⛔ CANCELLED
+
+> **⛔ 已取消**: 需要重新实施并进行人工审核。原有任务定义保留供参考。
 
 **目标**: 任务多次驳回（默认 3 次）或遇到异常时，调节者自动介入、诊断问题、提供解决方案或升级给用户。
 
-**独立测试**: 创建一个故意难以完成的任务，验证 3 次驳回后调节者自动介入、分析问题、提供解决方案（重新分配/拆分/升级）。
-
 ### 用户故事 4 的测试 ⚠️
 
-> **注意：先编写这些测试，确保在实现之前它们是失败的**
-
-- [X] T073 [P] [US4] 在 tests/unit/mediator/analyzer.test.ts 中编写 Mediator 分析器的单元测试（从任务历史诊断问题类型）
-- [X] T074 [P] [US4] 在 tests/unit/mediator/resolver.test.ts 中编写 Mediator 解决器的单元测试（生成并排序解决方案）
-- [X] T075 [P] [US4] 在 tests/unit/mediator/cbr.test.ts 中编写 CBR 案例存储和检索的单元测试
-- [X] T076 [P] [US4] 在 tests/integration/mediation.test.ts 中编写调解流程的集成测试（3 次驳回 → 触发 → 诊断 → 解决）
+- [-] T073 [P] [US4] 在 tests/unit/mediator/analyzer.test.ts 中编写 Mediator 分析器的单元测试
+- [-] T074 [P] [US4] 在 tests/unit/mediator/resolver.test.ts 中编写 Mediator 解决器的单元测试
+- [-] T075 [P] [US4] 在 tests/unit/mediator/cbr.test.ts 中编写 CBR 案例存储和检索的单元测试
+- [-] T076 [P] [US4] 在 tests/integration/mediation.test.ts 中编写调解流程的集成测试
 
 ### 用户故事 4 的实现
 
-- [X] T077 [US4] 在 src/mediator/analyzer.ts 中实现 Mediator 分析器（分析任务历史、识别问题类型：循环/超时/错误/依赖）
-- [X] T078 [US4] 在 src/mediator/resolver.ts 中实现 Mediator 解决器（生成解决方案：重试/重新分配/拆分/升级，按置信度排序）
-- [X] T079 [US4] 在 src/mediator/index.ts 中实现 CBR 案例存储（存储成功的调解记录、按问题类型查找相似案例）
-- [X] T080 [US4] 在 src/mediator/index.ts 中实现调解规则引擎（循环 → 重新分配并排除当前 agent、超时 → 拆分、依赖 → 升级）
-- [X] T081 [US4] 在 src/orchestrator/index.ts 中扩展编排器循环以支持调解触发（检测 retryCount >= 3、调用调节者、应用解决方案）
-- [X] T082 [US4] 在 src/mediator/resolver.ts 中实现当调节者无法解决时升级给用户（创建带诊断信息的 UserQuery）
-
-**检查点**: 此时，所有用户故事 1-4 均可正常工作。系统能在任务卡住时通过调解进行自我修复。
+- [-] T077 [US4] 在 src/mediator/analyzer.ts 中实现 Mediator 分析器
+- [-] T078 [US4] 在 src/mediator/resolver.ts 中实现 Mediator 解决器
+- [-] T079 [US4] 在 src/mediator/index.ts 中实现 CBR 案例存储
+- [-] T080 [US4] 在 src/mediator/index.ts 中实现调解规则引擎
+- [-] T081 [US4] 在 src/orchestrator/index.ts 中扩展编排器循环以支持调解触发
+- [-] T082 [US4] 在 src/mediator/resolver.ts 中实现升级给用户
 
 ---
 
 ## 第七阶段：用户故事 5 - 进度监控与断线重连 (优先级: P3)
 
-**目标**: 用户可以通过 `/agentic.status` 重新连接到正在运行的任务、查询历史任务状态、或在 AI 会话断开后恢复监控。支持任务取消。
+> ⏸️ **暂停：需要人工审查**。第七阶段的任务已有部分代码实现（status、wait、complete、score、respond、subtask、ask、prompt-builder），但尚未经过完整的人工验收。请在继续之前逐项审查代码实现与需求的一致性。
 
-**独立测试**: 启动一个长时间任务后关闭 AI 会话，然后在新会话中使用 `/agentic.status <task-id>` 验证能否看到任务的当前进度，并可选择重新进入持续监控模式。使用 `/agentic.status`（无参数）列出所有活跃任务。使用 `agentic cancel <id>` 取消任务。
+**目标**: 用户可以通过 `/agentic.status` 查看任务状态、`agentic wait` 阻塞等待终态、`status --watch` 永久监控。支持任务取消。
+
+**独立测试**: 启动一个长时间任务后关闭 AI 会话，然后在新会话中使用 `/agentic.status <task-id>` 验证能否看到任务的当前进度。使用 `agentic wait <task-id>` 阻塞等待终态。使用 `agentic cancel <id>` 取消任务。
 
 ### 用户故事 5 的测试 ⚠️
 
 > **注意：先编写这些测试，确保在实现之前它们是失败的**
 
-- [ ] T083 [P] [US5] 在 tests/unit/cli/status.test.ts 中编写 CLI status 命令的单元测试（格式化任务状态、进度显示、重连到运行中的任务）
+- [ ] T083 [P] [US5] 在 tests/unit/cli/status.test.ts 中编写 CLI status 命令的单元测试（格式化任务状态、进度显示、--watch 永久监控）
 - [ ] T084 [P] [US5] 在 tests/unit/cli/cancel.test.ts 中编写 CLI cancel 命令的单元测试（取消运行中的任务、拒绝已完成的任务）
 - [ ] T085 [P] [US5] 在 tests/unit/cli/active-tasks.test.ts 中编写活跃任务列表的单元测试（列出所有活跃任务、显示摘要）
-- [ ] T086 [P] [US5] 在 tests/integration/reconnection.test.ts 中编写断线重连流程的集成测试（断开 → status → 恢复轮询 → 显示待处理查询）
+- [ ] T086 [P] [US5] 在 tests/integration/reconnection.test.ts 中编写断线重连流程的集成测试（断开 → status → wait → 显示待处理查询）
 
 ### 用户故事 5 的实现
 
-- [ ] T087 [US5] 在 src/cli/commands/status.ts 中实现带重连功能的 CLI status 命令（按 ID 查询任务、显示状态/进度/agent/时长、通过会话报告器恢复轮询模式、支持 `--watch` 标志进入持续监控，FR-014/FR-020）
+- [ ] T087 [US5] 在 src/cli/commands/status.ts 中实现 CLI status 命令（按 ID 查询任务、显示状态/进度/agent/时长/评分信息、支持 `--watch` 启动永久监控进程，FR-014）
 - [ ] T088 [US5] 在 src/cli/commands/status.ts 中实现活跃任务列表（无 task-id 时：列出所有活跃任务及状态摘要，FR-021）
-- [ ] T089 [US5] 在 src/cli/commands/status.ts 中实现重连时显示待处理查询（当任务处于 waiting_user 状态时，立即显示待处理的问题，FR-022）
-- [ ] T090 [US5] 在 src/cli/commands/cancel.ts 中实现 CLI cancel 命令（附带原因取消任务、验证可取消状态）
+- [ ] T089 [US5] 在 src/cli/commands/status.ts 中实现待处理查询展示（当任务处于 waiting_user 状态时，立即显示待处理的问题，FR-022）
+- [ ] T089a [US5] 在 src/cli/commands/wait.ts 中实现 CLI wait 命令（阻塞轮询直到终态或 waiting_user，waiting_eval 继续等待不退出，FR-028）
+- [ ] T090 [US5] 在 src/cli/commands/cancel.ts 中实现 CLI cancel 命令（附带原因取消任务、验证可取消状态，FR-016）
 - [ ] T091 [US5] 在 src/cli/commands/status.ts 中实现历史记录显示命令（显示完整事件时间线、评分、调解记录、统计数据）
 - [ ] T092 [US5] 在 src/cli/utils.ts 中为所有 CLI 命令添加 JSON 输出格式支持（--json 标志）
-- [ ] T093 [US5] 在 src/cli/index.ts 中将 status 和 cancel 命令注册到 CLI 入口点
-- [ ] T093a [US5] 在 src/cli/commands/complete.ts 中实现 CLI complete 命令（子 Agent 调用以报告任务完成、自动触发评分、根据评分结果重试或标记完成/失败）
+- [ ] T093 [US5] 在 src/cli/index.ts 中将 status、wait、cancel 命令注册到 CLI 入口点
+- [ ] T093a [US5] 在 src/cli/commands/complete.ts 中实现 CLI complete 命令（子 Agent 报告完成，若配置 scorer.agentId 则转 waiting_eval 并启动 Scorer Agent，否则直接 completed，FR-025）
+- [ ] T093b [US5] 在 src/cli/commands/score.ts 中实现 CLI score 命令（Scorer Agent 报告评分结果，通过则 completed，驳回则原 Agent 重试附带反馈，FR-027）
+- [ ] T093c [US5] 在 src/cli/commands/respond.ts 中实现 CLI respond 命令（用户响应 waiting_user 查询，FR-029）
+- [ ] T093d [US5] 在 src/cli/commands/subtask.ts 中实现 CLI subtask 命令（父 Agent 创建子任务，FR-030）
+- [ ] T093e [US5] 在 src/agents/prompt-builder.ts 中实现 Scorer 和 Retry 提示构建（buildScorerSystemPrompt、buildScorerTaskPrompt、buildRetryTaskPrompt）
+- [ ] T093f [US5] 在 src/cli/commands/ask.ts 中实现 CLI ask 命令（Agent 提问转 waiting_user，FR-031）
 
-**检查点**: 所有用户故事现已独立可用。完整系统具备监控、断线重连和取消功能。
+**检查点**: 此时，系统具备完整的 CLI 命令集（status/wait/complete/score/respond/subtask/ask/cancel）、AI Agent 评分循环、永久监控（--watch）和阻塞等待（wait）功能。
 
 ---
 
@@ -385,7 +381,7 @@ Task: T042 "评分器，在 src/scorer/evaluator.ts"      # [P] 可与 T035、T0
 - 技术栈：citty（CLI）、unstorage（存储）、c12（配置）、hookable（事件）、consola（日志）、vitest（测试）
 - 所有状态通过 unstorage 的 fs 驱动持久化（可配置）
 - FSM + 事件日志用于任务状态管理（依据 research.md 决策）
-- 规则引擎 + 启发式用于评分（依据 research.md 决策）
+- 仅 AI Agent 评分（通过 scorer.agentId 配置启用，依据 spec.md 评分机制决策）
 - CBR + 规则用于调解（依据 research.md 决策）
 - Promise 池用于并发控制（依据 research.md 决策）
 - 会话报告器处理 AI 会话绑定和进度轮询（依据 spec.md 会话生命周期）

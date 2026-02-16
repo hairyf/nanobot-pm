@@ -1,7 +1,7 @@
 import type { Score } from '../scorer/types'
 import type { HistoryStoreInterface } from '../storage/types'
 import type { Task, TaskHistory } from '../task/types'
-import type { Diagnosis, ProblemType } from './types'
+import type { Diagnosis } from './types'
 
 export class MediatorAnalyzer {
   constructor(private historyStore: HistoryStoreInterface) {}

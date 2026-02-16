@@ -59,7 +59,7 @@ describe('taskManager - Downstream Task Creation (T055)', () => {
     })
 
     it('rejects task creation when depth exceeds 10', async () => {
-      let currentTask = await manager.createTask({ description: 'Root', type: 'local', depth: 9 })
+      const currentTask = await manager.createTask({ description: 'Root', type: 'local', depth: 9 })
 
       // Create task at depth 10 (should succeed)
       const depth10Task = await manager.createChildTask(currentTask.id, {

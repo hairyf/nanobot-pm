@@ -122,9 +122,9 @@
 - **任务嵌套深度限制**: 子任务嵌套深度最大为 10 层，超出时系统拒绝创建新的子任务并返回错误
 - **超时处理**: 当任务处理时间超过预设超时时间（默认 30 分钟）时，系统应该自动终止任务并通知用户
 - **资源耗尽**: 当系统内存占用超过阈值（默认 500MB）时，系统应该暂停接受新任务、在日志中记录告警、并通知用户
-- **评分机制**: 当前版本采用单评分者模式（每次评分由一个评分者执行，支持 rule/heuristic/manual 三种类型）。评分者由系统根据任务类型自动选择
+- **评分机制**: 评分仅通过 AI Agent 实现。当配置了 `scorer.agentId` 时，AI Agent 评分生效：子 Agent 完成 → 状态变为 `waiting_eval` → Scorer Agent 启动评分 → 通过则 `completed`，驳回则原 Agent 重试附带反馈。未配置 `scorer.agentId` 时跳过评分，任务直接标记为 `completed`
 - **子代理缺失**: 当系统检测到任务需要的子代理不存在时，应该提示用户并建议需要创建的代理类型（基于任务描述中的关键词推断）
-- **评分者异常**: 当评分规则引擎或启发式评估出错时，系统应记录错误日志并使用降级策略（默认通过，标记为"未评分"）
+- **评分者异常**: 当 AI Agent 评分出错时（如 Scorer Agent 崩溃或超时），系统应记录错误日志并使用降级策略（默认通过，标记为"未评分"）
 - **网络中断**: 当任务处理过程中网络中断，系统应该在每次状态变更时持久化到 unstorage，网络恢复后从最后持久化的状态继续
 - **会话断开**: 当用户关闭 AI 会话或会话意外断开时，后台任务继续执行，用户可通过 `/agentic.status` 在新会话中重新连接
 - **会话中多次 specify**: 当用户在同一 AI 会话中连续执行多个 `/agentic.specify` 时，系统应拒绝第二个任务并返回错误（错误码 `SESSION_ALREADY_BOUND`，消息："当前会话已绑定任务 `<task-id>`，请先等待任务完成或通过 `/agentic.cancel <task-id>` 取消"）
@@ -141,7 +141,7 @@
 - **FR-002**: 系统必须能够扫描 AI Agents 环境的子代理定义目录（`.cursor/agents/`、`.claude/agents/` 等宿主环境标准目录）并列出可用的 Agent
 - **FR-003**: 系统必须能够根据任务描述自动判断任务类型（local/downstream/inquiry），判断策略：先匹配已注册 Agent 的能力标签（capabilities + specialties），若匹配则为 local；若任务需要多个专长领域协作则为 downstream；若任务描述含决策点或用户偏好则为 inquiry
 - **FR-004**: 系统必须能够将任务分配给合适的 Agent 并启动处理流程。匹配规则：按 Agent 能力标签（capabilities）与任务关键词的重合度排序，优先选择空闲 Agent
-- **FR-005**: 系统必须能够在任务完成后自动触发评分流程。评分者类型包括：rule（基于可配置规则引擎）、heuristic（启发式阈值）、manual（人工评分）
+- **FR-005**: 系统必须能够在任务完成后自动触发评分流程。评分者类型仅支持 AI Agent 评分（通过 `scorer.agentId` 配置启用，由独立 AI Agent 会话执行评分）。配置了 `scorer.agentId` 时评分流程生效，未配置时跳过评分直接完成
 - **FR-006**: 评分者必须能够对任务结果进行评分（通过/驳回）并提供反馈
 - **FR-007**: 系统必须能够根据评分结果决定下一步操作（返回上游/重新处理/调节者介入）
 - **FR-008**: 系统必须能够检测任务处理循环（默认阈值：3 次驳回）并触发调节者介入
@@ -150,24 +150,30 @@
 - **FR-011**: 系统必须能够接收用户响应并继续任务处理
 - **FR-012**: `/agentic.specify` 在 AI Agent 环境中执行后，必须在当前会话中维持持续连接，每 N 秒（配置字段 `orchestrator.pollInterval`，默认 10 秒）自动输出任务进度更新
 - **FR-013**: 系统必须能够持久化任务状态（通过 unstorage），以便在系统重启后恢复
-- **FR-014**: 系统必须能够提供任务状态查询接口（`/agentic.status <task-id>`），支持在新会话中重新连接到正在运行的任务并恢复轮询。CLI 模式下支持 `--watch` 标志进入持续监控模式（等同于 AI 会话的自动轮询行为）
+- **FR-014**: 系统必须能够提供任务状态查询接口（`/agentic.status <task-id>`），支持在新会话中查看任务状态。CLI 模式下支持 `--watch` 标志启动永久监控进程（持续输出进度更新直到手动终止）。阻塞式等待通过独立的 `agentic wait <task-id>` 命令实现，阻塞直到任务到达终态（`completed`/`failed`/`cancelled`）或 `waiting_user`
 - **FR-015**: 系统必须能够在子代理缺失时提示用户并建议需要创建的代理类型（基于任务描述关键词推断所需能力）
 - **FR-016**: 系统必须能够支持任务取消操作（`/agentic.cancel <task-id>`）。取消父任务时，所有未完成的子任务也应被取消
 - **FR-017**: 系统必须能够记录所有任务执行历史，包括 Agent 处理记录、评分结果、调节记录和会话绑定事件
 - **FR-018**: 系统必须能够支持初始化命令（`/agentic.init`）来创建必要的配置文件（`agentic.config.ts`）和目录结构（存储目录）
 - **FR-019**: 当 AI 会话断开时，任务必须在后台继续执行，不受会话生命周期影响。系统持久化会话绑定状态以支持断线重连
-- **FR-020**: `/agentic.status <task-id>` 必须能够在新会话中恢复轮询模式，继续输出进度更新
+- **FR-020**: `/agentic.status <task-id>` 必须能够在新会话中查看任务当前状态，`--watch` 模式下启动永久监控进程持续输出进度更新
 - **FR-021**: `/agentic.status`（无参数）必须列出所有活跃任务的状态摘要
 - **FR-022**: 当用户通过 `/agentic.status` 重新连接到处于 waiting_user 状态的任务时，系统必须立即展示待回答的问题
 - **FR-023**: 系统必须通过心跳超时机制（默认 30 秒无响应）检测 Agent 崩溃，并自动重新分配任务给其他可用 Agent
 - **FR-024**: 当系统内存占用超过配置阈值（默认 500MB）时，系统必须暂停接受新任务并记录告警日志
-- **FR-025**: 系统必须能够支持任务完成命令（agentic complete <task-id> --output "描述"）。子 Agent 在完成任务后调用此命令报告完成，系统自动触发评分流程并根据评分结果决定下一步操作
+- **FR-025**: 系统必须能够支持任务完成命令（`agentic complete <task-id> --output "描述"`）。子 Agent 在完成任务后调用此命令报告完成。若配置了 `scorer.agentId`，系统将任务状态转为 `waiting_eval` 并启动 AI 评分 Agent；否则自动标记为 `completed`
+- **FR-026**: 系统必须能够支持 AI Agent 评分循环。当 `agentic.config.ts` 中配置了 `scorer.agentId` 时：子 Agent 调用 `agentic complete` → 状态变为 `waiting_eval` → 系统启动 Scorer Agent 会话 → Scorer Agent 调用 `agentic score` 报告结果 → 通过则 `completed`，驳回则原 Agent 重试（附带 Scorer 反馈），`waiting_eval` 不视为终态
+- **FR-027**: 系统必须能够支持评分命令（`agentic score <task-id> --result pass|reject [--feedback "..."] [--score 0.85]`）。Scorer Agent 完成评分后调用此命令报告结果
+- **FR-028**: 系统必须能够支持阻塞等待命令（`agentic wait <task-id>`）。阻塞轮询直到任务到达终态（`completed`/`failed`/`cancelled`）或 `waiting_user`，`waiting_eval` 状态下继续等待不退出
+- **FR-029**: 系统必须能够支持用户响应命令（`agentic respond <task-id> --answer "..."`）。用于向 `waiting_user` 状态的任务提交用户响应，触发任务恢复执行
+- **FR-030**: 系统必须能够支持子任务创建命令（`agentic subtask <parent-task-id> <agent-id> "描述"`）。由父 Agent 调用以创建子任务并自动开始执行
+- **FR-031**: 系统必须能够支持 Agent 提问命令（`agentic ask <task-id> --question "问题内容"`）。子 Agent 调用此命令将任务状态转为 `waiting_user` 并记录问题，等待用户通过 `agentic respond` 回答
 
 ### 关键实体
 
-- **Task（任务）**: 用户提交的工作单元，包含描述、类型（local/downstream/inquiry）、状态（pending/running/waiting_user/completed/failed/cancelled）、分配的 Agent、父子关系、嵌套深度（最大 10）、创建/更新时间
+- **Task（任务）**: 用户提交的工作单元，包含描述、类型（local/downstream/inquiry）、状态（pending/running/waiting_user/waiting_eval/completed/failed/cancelled）、分配的 Agent、父子关系、嵌套深度（最大 10）、重试计数（retryCount）、最大重试次数（maxRetries，默认 3）、评分结果（score）、创建/更新时间
 - **Agent（代理）**: 执行任务的智能体，包含名称、能力标签（capabilities）、专长领域（specialties）、状态（idle/busy/offline）、重试策略
-- **Score（评分）**: 任务处理结果的评估，包含评分结果（pass/reject）、置信度、反馈内容、评分者类型（rule/heuristic/manual）、评分时间
+- **Score（评分）**: 任务处理结果的评估，包含评分结果（pass/reject）、置信度、反馈内容、评分者类型（agent）、评分者 ID、评分时间
 - **Mediation（调节）**: 调节者的介入记录，包含问题诊断（问题类型：loop/timeout/error/dependency）、解决方案列表、调节结果（success/failed/escalated）、调节时间
 - **TaskHistory（任务历史）**: 任务执行的完整记录，包含所有事件（创建/分配/评分/调节/会话绑定等）、评分记录、调节记录、统计信息
 - **UserQuery（用户询问）**: 需要用户决策的问题，包含问题描述、可选项、用户响应、响应时间。系统无限期等待用户响应
@@ -220,7 +226,7 @@
 - 用户具有基本的命令行操作能力
 - 系统运行环境具有稳定的网络连接和足够的计算资源
 - 子代理定义遵循标准的 Agent 配置格式（如 `.cursor/agents/` 或 `.claude/agents/`）
-- 评分标准通过配置文件（`agentic.config.ts` 中 `scorer` 部分）定义，配置格式包括：`autoScore`（布尔值，是否自动评分）、`scoreThreshold`（0-1 浮点数，评分通过阈值）、`rules`（评分规则数组，每条规则包含 `name`、`weight`、`condition`）。评分者根据配置的规则和阈值评分
+- 评分通过配置文件（`agentic.config.ts` 中 `scorer` 部分）启用，核心配置为 `scorer.agentId`（字符串，指向评分 Agent 的 ID）。配置了 `agentId` 时 AI Agent 评分生效，未配置时跳过评分
 - 调节者具有足够的上下文信息（任务历史、评分记录、Agent 能力列表）来分析问题并提供有效建议
 - 任务描述是清晰的，能够被系统正确解析和理解
 - 用户可能不会立即响应询问 — 系统无限期等待用户响应，不会因超时而丢失任务状态
@@ -257,7 +263,7 @@
 - Q: Agent 定义目录应使用 `.agentic/agents/` 还是 AI Agents 环境目录？ → A: 使用 AI Agents 环境的标准目录（如 `.cursor/agents/`、`.claude/agents/`），不使用自定义 `.agentic/` 目录
 - Q: 用户询问（UserQuery）超时行为应该是 10 分钟超时还是无限期等待？ → A: 无限期等待，系统定期发送提醒但不终止任务
 - Q: "下游任务"与"子任务"术语是否统一？ → A: 统一使用"子任务"（downstream task），"下游 Agent"指接收子任务的 Agent
-- Q: 评分者是什么类型？ → A: 支持三种类型：rule（规则引擎）、heuristic（启发式）、manual（人工），当前版本单评分者模式
+- Q: 评分者是什么类型？ → A: 仅支持 AI Agent 评分。通过 `scorer.agentId` 配置启用，由独立 AI Agent 会话执行评分。未配置时跳过评分
 - Q: 调节者的运行机制？ → A: 基于 CBR 案例推理 + 规则引擎驱动，非独立 Agent
 - Q: 命令格式为何不一致？ → A: AI 环境使用 `/agentic.specify`（点号），CLI 终端使用 `agentic specify`（空格），功能等价
 - Q: sources/claude-flow 依赖是否仍有效？ → A: 已移除，内部依赖更新为 hookable + c12 + unstorage
@@ -269,3 +275,7 @@
 - Q: specify 命令是否需要显式指定 agentId？ → A: CLI 形式使用 `agentic specify <agentId> <description>`（双参数），AI 环境的 `/agentic.specify` 由 AI 自行决定分配给哪个 agent
 - Q: executor 配置是否需要暴露给用户？ → A: 不需要。executor 使用 Orchestrator 内部的 processTask() 机制（scheduler → assign → executeTask），不调用外部 API。defineConfig 中不包含 executor 配置
 - Q: 是否需要 complete 命令？ → A: 是。子 Agent 通过 `agentic complete <taskId> --output "..."` 报告完成，系统自动评分
+- Q: status --wait 和 status --watch 的区别？ → A: `agentic wait <taskId>` 为独立命令，阻塞直到终态或 waiting_user；`agentic status --watch` 启动永久监控进程持续输出进度
+- Q: AI Agent 评分如何触发？ → A: 配置 `scorer.agentId` 后，`agentic complete` 将状态转为 `waiting_eval` 并启动 Scorer Agent 会话；Scorer Agent 调用 `agentic score` 提交评分结果
+- Q: init 命令是否应自动生成 Agent 定义？ → A: 不应该。Agent 定义由用户自行创建，init 只创建目录和配置文件
+- Q: waiting_eval 是否为终态？ → A: 不是。`agentic wait` 在 `waiting_eval` 状态下继续轮询，不退出

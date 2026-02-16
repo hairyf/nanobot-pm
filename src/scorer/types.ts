@@ -1,4 +1,3 @@
-import type { Task, TaskResult } from '../task/types'
 import { z } from 'zod'
 
 // --- ScoreResult ---
@@ -24,17 +23,8 @@ export const ScoreSchema = z.object({
   criteria: z.array(ScoreCriterionSchema),
   suggestions: z.array(z.string()),
   scorerId: z.string(),
-  scorerType: z.enum(['rule', 'heuristic', 'manual']),
+  scorerType: z.literal('agent'),
   scoredAt: z.number(),
   metadata: z.record(z.string(), z.unknown()),
 })
 export type Score = z.infer<typeof ScoreSchema>
-
-// --- ScoringRule (condition is a function; plain TypeScript, no Zod) ---
-export interface ScoringRule {
-  name: string
-  weight: number
-  condition: (task: Task, result: TaskResult) => boolean
-  score: ScoreResult
-  feedback: string
-}

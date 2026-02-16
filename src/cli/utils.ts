@@ -28,6 +28,7 @@ export function formatStatus(status: string): string {
     pending: '⏳',
     running: '🔄',
     waiting_user: '⚠️',
+    waiting_eval: '🔍',
     completed: '✅',
     failed: '❌',
     cancelled: '🚫',

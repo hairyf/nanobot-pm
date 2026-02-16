@@ -1,78 +1,68 @@
-import type { EvaluatorConfig } from '../../../src/scorer/evaluator'
-import type { ScoringRule } from '../../../src/scorer/types'
-import type { TaskResult } from '../../../src/task/types'
 import { describe, expect, it } from 'vitest'
-import { evaluate } from '../../../src/scorer/evaluator'
-import { createMockTask } from '../../helpers'
-
-function makeResult(overrides: Partial<TaskResult> = {}): TaskResult {
-  return {
-    taskId: 'task-1',
-    success: true,
-    duration: 100,
-    metadata: {},
-    ...overrides,
-  }
-}
+import { buildAgentScore } from '../../../src/scorer/evaluator'
 
 describe('scoring evaluator', () => {
-  it('evaluate returns \'pass\' when all rules pass', () => {
-    const task = createMockTask({ id: 'task-1' })
-    const result = makeResult()
-    const rules: ScoringRule[] = [
-      { name: 'R1', weight: 0.5, condition: () => true, score: 'pass', feedback: 'OK' },
-      { name: 'R2', weight: 0.5, condition: () => true, score: 'pass', feedback: 'OK' },
-    ]
-    const config: EvaluatorConfig = { scoreThreshold: 0.5, rules }
-    const score = evaluate(task, result, config)
+  it('buildAgentScore creates a pass score with correct defaults', () => {
+    const score = buildAgentScore({
+      taskId: 'task-1',
+      result: 'pass',
+      feedback: 'All criteria met',
+      scorerId: 'scorer-agent',
+    })
     expect(score.result).toBe('pass')
     expect(score.confidence).toBe(1)
+    expect(score.scorerType).toBe('agent')
+    expect(score.scorerId).toBe('scorer-agent')
+    expect(score.feedback).toBe('All criteria met')
+    expect(score.criteria).toEqual([])
+    expect(score.suggestions).toEqual([])
+    expect(score.id).toBeTruthy()
+    expect(score.scoredAt).toBeGreaterThan(0)
   })
 
-  it('evaluate returns \'reject\' when score below threshold', () => {
-    const task = createMockTask({ id: 'task-1' })
-    const result = makeResult()
-    const rules: ScoringRule[] = [
-      { name: 'R1', weight: 0.5, condition: () => true, score: 'pass', feedback: 'OK' },
-      { name: 'R2', weight: 0.5, condition: () => false, score: 'reject', feedback: 'Failed' },
-    ]
-    const config: EvaluatorConfig = { scoreThreshold: 0.8, rules }
-    const score = evaluate(task, result, config)
+  it('buildAgentScore creates a reject score with confidence 0', () => {
+    const score = buildAgentScore({
+      taskId: 'task-2',
+      result: 'reject',
+      feedback: 'Code quality too low',
+      suggestions: ['Add error handling', 'Improve naming'],
+      scorerId: 'scorer-agent',
+    })
     expect(score.result).toBe('reject')
-    expect(score.confidence).toBe(0.5)
+    expect(score.confidence).toBe(0)
+    expect(score.scorerType).toBe('agent')
+    expect(score.suggestions).toEqual(['Add error handling', 'Improve naming'])
   })
 
-  it('evaluate handles empty rules (default pass)', () => {
-    const task = createMockTask({ id: 'task-1' })
-    const result = makeResult()
-    const config: EvaluatorConfig = { scoreThreshold: 0.5, rules: [] }
-    const score = evaluate(task, result, config)
-    expect(score.result).toBe('pass')
-    expect(score.confidence).toBe(1)
+  it('buildAgentScore allows custom confidence', () => {
+    const score = buildAgentScore({
+      taskId: 'task-3',
+      result: 'pass',
+      feedback: 'Mostly good',
+      scorerId: 'scorer-agent',
+      confidence: 0.85,
+    })
+    expect(score.confidence).toBe(0.85)
   })
 
-  it('evaluate generates improvement suggestions for failed criteria', () => {
-    const task = createMockTask({ id: 'task-1' })
-    const result = makeResult()
-    const rules: ScoringRule[] = [
-      { name: 'Quality', weight: 0.5, condition: () => false, score: 'reject', feedback: 'Low quality' },
-      { name: 'Speed', weight: 0.5, condition: () => true, score: 'pass', feedback: 'OK' },
-    ]
-    const config: EvaluatorConfig = { scoreThreshold: 1, rules }
-    const score = evaluate(task, result, config)
-    expect(score.suggestions).toContainEqual(expect.stringContaining('Quality'))
-    expect(score.suggestions).toContainEqual(expect.stringContaining('Low quality'))
+  it('buildAgentScore allows custom metadata', () => {
+    const score = buildAgentScore({
+      taskId: 'task-4',
+      result: 'pass',
+      feedback: 'Good',
+      scorerId: 'scorer-agent',
+      metadata: { reviewedFiles: 3 },
+    })
+    expect(score.metadata).toEqual({ reviewedFiles: 3 })
   })
 
-  it('evaluate calculates correct confidence from weighted criteria', () => {
-    const task = createMockTask({ id: 'task-1' })
-    const result = makeResult()
-    const rules: ScoringRule[] = [
-      { name: 'R1', weight: 0.7, condition: () => true, score: 'pass', feedback: 'OK' },
-      { name: 'R2', weight: 0.3, condition: () => false, score: 'reject', feedback: 'No' },
-    ]
-    const config: EvaluatorConfig = { scoreThreshold: 0.5, rules }
-    const score = evaluate(task, result, config)
-    expect(score.confidence).toBe(0.7)
+  it('buildAgentScore always sets scorerType to agent', () => {
+    const score = buildAgentScore({
+      taskId: 'task-5',
+      result: 'reject',
+      feedback: 'Needs work',
+      scorerId: 'ai-scorer',
+    })
+    expect(score.scorerType).toBe('agent')
   })
 })

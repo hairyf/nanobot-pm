@@ -6,7 +6,6 @@ import type { OrchestratorHooks } from './types'
 import { createHooks } from 'hookable'
 import { executeTask } from '../agents/executor'
 import { AgentRegistry } from '../agents/registry'
-import { evaluate } from '../scorer/evaluator'
 import { HistoryStore } from '../storage/history-store'
 import { TaskStore } from '../storage/task-store'
 import { classifyTask } from '../task/classifier'
@@ -37,7 +36,8 @@ export class Orchestrator {
 
   private taskStore: TaskStore
   private config: AppConfig
-  private platform?: Agent
+  /** Platform adapter (cursor/claude) — exposed for CLI commands that need to spawn agents. */
+  public platform?: Agent
   /** Tracks in-flight processTask promises so callers can await completion. */
   private processingPromises = new Map<string, Promise<void>>()
 
@@ -171,15 +171,10 @@ export class Orchestrator {
         return
       }
 
-      const scorerConfig = {
-        scoreThreshold: this.config.scorer.scoreThreshold,
-        rules: [],
-      }
-      const score = evaluate(updatedTask, result, scorerConfig)
-      await this.historyStore.appendScore(taskId, score)
-      await this.hooks.callHook('score:submitted', score)
-
-      if (score.result === 'pass') {
+      // Scoring is handled by AI Agent externally (via `agentic complete` → `agentic score`).
+      // If scorer.agentId is configured, the `complete` command transitions to waiting_eval.
+      // Here we handle the in-process case (no external delegation, no scorer):
+      if (result.success) {
         await this.taskManager.transitionStatus(taskId, 'completed')
         const completedTask = await this.taskManager.getTask(taskId)
         if (completedTask) {
@@ -410,7 +405,7 @@ export class Orchestrator {
 
     for (const part of parts) {
       const trimmed = part.trim()
-      const orMatch = trimmed.match(/(?:choose|select|decide)\s+(?:between\s+|on\s+|from\s+)?(.+?)\s+or\s+(.+)$/i)
+      const orMatch = trimmed.match(/(?:choose|select|decide) (?:between |on |from )?(.+?) or (.+)$/i)
       if (orMatch) {
         const opt1 = orMatch[1].trim()
         const opt2 = orMatch[2].trim()

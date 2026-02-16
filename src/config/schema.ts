@@ -1,13 +1,12 @@
 import { z } from 'zod'
 
 export const ScorerConfigSchema = z.object({
-  autoScore: z.boolean().default(true),
+  /** Agent ID for AI-driven scoring. If set, the scorer agent evaluates task output. */
+  agentId: z.string().optional(),
+  /** Whether to automatically score tasks when they complete. */
+  autoScore: z.boolean().default(false),
+  /** Minimum score threshold to consider a task as passed (0-1). */
   scoreThreshold: z.number().min(0).max(1).default(0.8),
-  rules: z.array(z.object({
-    name: z.string(),
-    weight: z.number().min(0).max(1),
-    condition: z.string(), // rule expression
-  })).default([]),
 })
 
 export const MediatorConfigSchema = z.object({

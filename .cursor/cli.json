@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(pnpm)",
+      "Shell(npm)",
+      "Shell(node)",
+      "Shell(echo)",
+      "Shell(cat)",
+      "Shell(ls)",
+      "Shell(git)",
+      "Read(**)",
+      "Write(**)"
+    ],
+    "deny": []
+  }
+}

@@ -7,23 +7,6 @@ import { join } from 'pathe'
 import { PLATFORM_CONFIG, PLATFORMS } from '../../constants/platforms'
 import { logger } from '../../utils/logger'
 
-const DEVELOPER_AGENT_MD = `---
-name: developer
-description: A general-purpose developer agent for coding tasks
----
-
-## Capabilities
-
-- coding
-- testing
-- debugging
-
-## Specialties
-
-- typescript
-- javascript
-`
-
 const AGENTIC_SPECIFY_CMD = `---
 description: Create and execute a task via the agentic orchestrator
 ---
@@ -52,17 +35,24 @@ pnpm agentic specify <agentId> "$ARGUMENTS"
 
 Parse the JSON output and save \`taskId\` for subsequent steps.
 
-### 3. Poll status
+### 3. Wait for completion
 
-Continuously poll the task status until it reaches a terminal state:
+Run the blocking wait command — it will block until the task reaches a terminal state:
 
 \`\`\`bash
-pnpm agentic status <taskId> --json
+pnpm agentic wait <taskId>
 \`\`\`
 
-- If \`status\` is \`running\`, wait a few seconds and poll again.
+This command blocks until the task reaches a terminal state (\`completed\`, \`failed\`, \`cancelled\`) or \`waiting_user\`.
+
 - If \`status\` is \`completed\`, report the result (including score and summary) to the user.
 - If \`status\` is \`failed\`, report the error to the user.
+- If \`status\` is \`waiting_user\`, the JSON output will include a \`pendingQuery\` field with the question and options. Present the question to the user, collect their answer, then submit it and re-run wait:
+  \`\`\`bash
+  pnpm agentic respond <taskId> --answer "<user's answer>"
+  pnpm agentic wait <taskId>
+  \`\`\`
+- If the command exits with a timeout, re-run \`pnpm agentic wait <taskId>\` to continue waiting.
 `
 
 const AGENTIC_STATUS_CMD = `---
@@ -105,8 +95,7 @@ export default defineConfig({
     pollInterval: 10000,
   },
   scorer: {
-    autoScore: true,
-    scoreThreshold: 0.8,
+    agentId: 'scorer',
   },
   mediator: {
     triggerThreshold: 3,
@@ -186,16 +175,10 @@ export const initCommand = defineCommand({
     await mkdir(storageDir, { recursive: true })
     p.log.success('Created .agentic/storage/')
 
-    // 2. Create platform agents directory + example agent
+    // 2. Create platform agents directory
     const agentsDir = join(cwd, platformConfig.agentsDir)
     await mkdir(agentsDir, { recursive: true })
     p.log.success(`Created ${platformConfig.agentsDir}`)
-
-    await writeIfNotExists(
-      join(agentsDir, 'developer.md'),
-      DEVELOPER_AGENT_MD,
-      `${platformConfig.agentsDir}developer.md`,
-    )
 
     // 3. Create platform commands directory + command files
     if (platformConfig.commandsDir) {

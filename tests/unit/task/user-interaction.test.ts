@@ -6,7 +6,6 @@ import { HistoryStore } from '../../../src/storage/history-store'
 import { TaskStore } from '../../../src/storage/task-store'
 import { TaskManager } from '../../../src/task/manager'
 import { UserQueryManager } from '../../../src/task/user-query'
-import { createMockTask } from '../../helpers'
 
 describe('user interaction state transitions', () => {
   let taskManager: TaskManager

@@ -89,7 +89,7 @@ describe('historyStore', () => {
         criteria: [],
         suggestions: [],
         scorerId: 'scorer-1',
-        scorerType: 'rule',
+        scorerType: 'agent',
         scoredAt: Date.now(),
         metadata: {},
       }

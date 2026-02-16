@@ -53,7 +53,7 @@
 ### 原则 I：库优先（Library-First）
 ✅ **通过** - 核心功能实现为独立模块：
 - `src/orchestrator/` - 循环器核心逻辑（含 SessionBinding 会话绑定管理）
-- `src/scorer/` - 评分系统（rule/heuristic/manual 三种类型）
+- `src/scorer/` - 评分系统（仅 AI Agent 评分，通过 `scorer.agentId` 配置启用）
 - `src/mediator/` - 调节者（CBR 案例推理 + 规则引擎）
 - `src/task/` - 任务管理（含子任务委派，最大深度 10）
 - 每个模块可独立测试和文档化
@@ -61,7 +61,13 @@
 ### 原则 II：CLI 接口
 ✅ **通过** - 所有功能通过 `agentic` CLI 暴露：
 - `/agentic.specify <task>` - 创建任务并在 AI 会话中维持持续连接（自动轮询进度）
-- `/agentic.status [task-id]` - 断线重连（恢复轮询）或列出活跃任务
+- `/agentic.status [task-id]` - 查看任务状态或列出活跃任务（`--watch` 启动永久监控）
+- `agentic wait <task-id>` - 阻塞等待直到终态或 waiting_user
+- `agentic complete <task-id>` - 子 Agent 报告任务完成
+- `agentic score <task-id>` - Scorer Agent 报告评分结果
+- `agentic respond <task-id>` - 用户响应 waiting_user 查询
+- `agentic subtask <parent-id> <agent-id> "desc"` - 创建子任务
+- `agentic ask <task-id> --question "..."` - Agent 提问（转 waiting_user）
 - `/agentic.cancel <task-id>` - 取消任务
 - `/agentic.init` - 初始化配置
 - 支持 JSON 和人类可读输出格式
@@ -141,13 +147,8 @@ src/
 │   ├── index.ts        # Agent 注册表
 │   ├── loader.ts       # Agent 加载器
 │   ├── executor.ts     # Agent 执行器
+│   ├── prompt-builder.ts # Agent 提示构建器（含 Scorer/Retry 提示）
 │   └── types.ts        # Agent 类型
-│
-├── executor/           # 执行器工具
-│   ├── index.ts        # 导出入口
-│   ├── mock.ts         # 测试用 Mock 执行器
-│   ├── prompt-builder.ts # Agent 提示构建器
-│   └── types.ts        # 执行器类型定义
 │
 ├── storage/            # 存储层（已存在，扩展）
 │   ├── index.ts        # 存储接口
@@ -160,8 +161,13 @@ src/
 │   ├── helpers.ts      # CLI 上下文初始化（Orchestrator、存储、Agent 加载）
 │   ├── commands/       # 命令实现
 │   │   ├── specify.ts  # /agentic.specify
-│   │   ├── status.ts   # /agentic.status
+│   │   ├── status.ts   # /agentic.status（含 --watch 永久监控）
+│   │   ├── wait.ts     # agentic wait（阻塞等待终态）
 │   │   ├── complete.ts # agentic complete（子 Agent 报告完成）
+│   │   ├── score.ts    # agentic score（Scorer Agent 报告评分）
+│   │   ├── respond.ts  # agentic respond（用户响应 waiting_user）
+│   │   ├── subtask.ts  # agentic subtask（创建子任务）
+│   │   ├── ask.ts      # agentic ask（Agent 提问，转 waiting_user）
 │   │   ├── cancel.ts   # /agentic.cancel
 │   │   └── init.ts     # /agentic.init
 │   └── utils.ts        # CLI 工具函数
@@ -187,7 +193,7 @@ tests/
 │
 ├── integration/        # 集成测试
 │   ├── task-flow.test.ts      # 任务流程测试
-│   ├── scoring-loop.test.ts   # 评分循环测试
+│   ├── session-lifecycle.test.ts # 会话生命周期测试
 │   ├── mediation.test.ts      # 调节测试
 │   └── concurrent.test.ts     # 并发测试
 │
@@ -224,7 +230,7 @@ tests/
 3. **评分算法**
    - 研究任务评分方法
    - 调查：规则引擎 vs ML 模型 vs 启发式
-   - 决策：评分标准和阈值设置
+   - 决策：仅采用 AI Agent 评分，通过 `scorer.agentId` 配置启用
 
 4. **调节策略**
    - 研究问题诊断和解决方案生成
@@ -264,11 +270,15 @@ tests/
    - id: string (UUID)
    - description: string
    - type: 'local' | 'downstream' | 'inquiry'
-   - status: 'pending' | 'running' | 'waiting_user' | 'completed' | 'failed' | 'cancelled'
+   - status: 'pending' | 'running' | 'waiting_user' | 'waiting_eval' | 'completed' | 'failed' | 'cancelled'
    - assignedAgent: string
    - parentTaskId?: string
    - childTaskIds: string[]
    - depth: number (0-10)
+   - retryCount: number (default 0)
+   - maxRetries: number (default 3)
+   - score?: { result: 'pass' | 'reject', score?: number, feedback?: string, scoredAt: number }
+   - output?: string
    - createdAt: number
    - updatedAt: number
    - metadata: Record<string, any>

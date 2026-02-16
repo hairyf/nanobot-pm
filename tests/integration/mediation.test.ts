@@ -1,7 +1,7 @@
-import type { Diagnosis, Mediation } from '../../src/mediator/types'
+import type { Mediation } from '../../src/mediator/types'
 import type { Score } from '../../src/scorer/types'
 import type { HistoryStore } from '../../src/storage/history-store'
-import type { Task, TaskEvent, TaskHistory } from '../../src/task/types'
+import type { TaskEvent } from '../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -56,7 +56,7 @@ describe('mediation flow integration', () => {
       criteria: [],
       suggestions: [],
       scorerId: 'scorer-1',
-      scorerType: 'rule',
+      scorerType: 'agent',
       scoredAt: Date.now() - 3000,
       metadata: {},
     }
@@ -71,7 +71,7 @@ describe('mediation flow integration', () => {
       criteria: [],
       suggestions: [],
       scorerId: 'scorer-1',
-      scorerType: 'rule',
+      scorerType: 'agent',
       scoredAt: Date.now() - 2000,
       metadata: {},
     }
@@ -86,7 +86,7 @@ describe('mediation flow integration', () => {
       criteria: [],
       suggestions: [],
       scorerId: 'scorer-1',
-      scorerType: 'rule',
+      scorerType: 'agent',
       scoredAt: Date.now() - 1000,
       metadata: {},
     }
@@ -95,10 +95,10 @@ describe('mediation flow integration', () => {
     // Trigger mediation check (this would be called by orchestrator loop)
     const history = await orchestrator.historyStore.getHistory(task.id)
     expect(history?.scores.length).toBe(3)
-    expect(history?.scores.every((s: Score) => s.result === 'reject')).toBe(true)
+    expect((history?.scores as Score[]).every(s => s.result === 'reject')).toBe(true)
 
     // Check if mediator should be triggered (3+ rejections)
-    const rejectionCount = history?.scores.filter((s: Score) => s.result === 'reject').length ?? 0
+    const rejectionCount = (history?.scores as Score[]).filter(s => s.result === 'reject').length ?? 0
     expect(rejectionCount).toBeGreaterThanOrEqual(3)
   })
 
@@ -121,7 +121,7 @@ describe('mediation flow integration', () => {
         criteria: [],
         suggestions: [],
         scorerId: 'scorer-1',
-        scorerType: 'rule',
+        scorerType: 'agent',
         scoredAt: Date.now() - (3 - i) * 1000,
         metadata: {},
       }
@@ -157,7 +157,7 @@ describe('mediation flow integration', () => {
         criteria: [],
         suggestions: [],
         scorerId: 'scorer-1',
-        scorerType: 'rule',
+        scorerType: 'agent',
         scoredAt: Date.now() - (3 - i) * 1000,
         metadata: {},
       }
@@ -200,7 +200,7 @@ describe('mediation flow integration', () => {
         criteria: [],
         suggestions: [],
         scorerId: 'scorer-1',
-        scorerType: 'rule',
+        scorerType: 'agent',
         scoredAt: Date.now() - (3 - i) * 1000,
         metadata: {},
       }
@@ -240,7 +240,7 @@ describe('mediation flow integration', () => {
         criteria: [],
         suggestions: [],
         scorerId: 'scorer-1',
-        scorerType: 'rule',
+        scorerType: 'agent',
         scoredAt: Date.now() - (3 - i) * 1000,
         metadata: {},
       }

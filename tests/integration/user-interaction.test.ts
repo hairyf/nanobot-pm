@@ -1,7 +1,6 @@
-import type { QueryOption } from '../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { parseAppConfig } from '../../src/config/schema'
 import { Orchestrator } from '../../src/orchestrator'
 import { HistoryStore } from '../../src/storage/history-store'
@@ -168,7 +167,7 @@ describe('user interaction flow integration', () => {
         expect(query?.question).toBeDefined()
 
         // Respond to second query
-        await queryManager.submitResponse(query.id, query.options[0].id)
+        await queryManager.submitResponse(query!.id, query!.options[0].id)
         await new Promise(resolve => setTimeout(resolve, 100))
 
         const task = await orchestrator.taskManager.getTask(taskId)

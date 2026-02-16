@@ -16,3 +16,4 @@ test-project
 !/packages/core/src/skills
 !/packages/core/src/skills/**
 .docs
+.agentic

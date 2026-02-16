@@ -1,40 +1,31 @@
-import type { Task, TaskResult } from '../task/types'
-import type { Score, ScoreCriterion, ScoreResult, ScoringRule } from './types'
+import type { Score } from './types'
 import { generateUUID } from '../utils/validator'
 
-export interface EvaluatorConfig {
-  scoreThreshold: number
-  rules: ScoringRule[]
-}
-
-export function evaluate(task: Task, result: TaskResult, config: EvaluatorConfig): Score {
-  const criteria: ScoreCriterion[] = config.rules.map(rule => ({
-    name: rule.name,
-    weight: rule.weight,
-    passed: rule.condition(task, result),
-    reason: rule.feedback,
-  }))
-
-  // Calculate weighted score
-  const totalWeight = criteria.reduce((sum, c) => sum + c.weight, 0)
-  const passedWeight = criteria.filter(c => c.passed).reduce((sum, c) => sum + c.weight, 0)
-  const confidence = totalWeight > 0 ? passedWeight / totalWeight : 1
-
-  const scoreResult: ScoreResult = confidence >= config.scoreThreshold ? 'pass' : 'reject'
-
-  const suggestions = criteria.filter(c => !c.passed).map(c => `Improve: ${c.name} - ${c.reason}`)
-
+/**
+ * Build a Score record from AI Agent evaluation results.
+ * This is the only supported scoring method — all evaluation
+ * is performed by the Scorer Agent configured via `scorer.agentId`.
+ */
+export function buildAgentScore(params: {
+  taskId: string
+  result: 'pass' | 'reject'
+  feedback: string
+  suggestions?: string[]
+  scorerId: string
+  confidence?: number
+  metadata?: Record<string, unknown>
+}): Score {
   return {
     id: generateUUID(),
-    taskId: task.id,
-    result: scoreResult,
-    confidence,
-    feedback: scoreResult === 'pass' ? 'All criteria met' : `Score ${(confidence * 100).toFixed(0)}% below threshold ${(config.scoreThreshold * 100).toFixed(0)}%`,
-    criteria,
-    suggestions,
-    scorerId: 'rule-evaluator',
-    scorerType: 'rule',
+    taskId: params.taskId,
+    result: params.result,
+    confidence: params.confidence ?? (params.result === 'pass' ? 1 : 0),
+    feedback: params.feedback,
+    criteria: [],
+    suggestions: params.suggestions ?? [],
+    scorerId: params.scorerId,
+    scorerType: 'agent',
     scoredAt: Date.now(),
-    metadata: {},
+    metadata: params.metadata ?? {},
   }
 }

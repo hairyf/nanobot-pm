@@ -65,5 +65,8 @@ export const specifyCommand = defineCommand({
         prompt,
       },
     })
+
+    // Exit immediately — background child process (agent CLI) may keep the event loop alive
+    process.exit(0)
   },
 })

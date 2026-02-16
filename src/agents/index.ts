@@ -1,18 +1,16 @@
+import type { Buffer } from 'node:buffer'
 import type { Agent, LaunchOptions } from '../config/define'
-import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import process from 'node:process'
 import { dirname, join } from 'pathe'
 import { x } from 'tinyexec'
 import { logger } from '../utils/logger'
-
 /**
  * Ensure `.claude/settings.json` exists with `bypassPermissions` so Claude Code
  * can execute all tools (Bash, Read, Write, etc.) without interactive approval.
  *
- * Inspired by auto-company's approach: project-level permission config instead
- * of the `--dangerously-skip-permissions` CLI flag.
+ * @see auto-company's approach: project-level permission config
  */
 function ensureClaudeSettings(cwd: string): void {
   const settingsDir = join(cwd, '.claude')
@@ -79,7 +77,7 @@ function ensureCursorSettings(cwd: string): void {
 }
 
 /**
- * Build a short, single-line reference message for the Cloud Agent.
+ * Build a short, single-line reference message for the agent.
  *
  * Instead of passing the full multi-line prompt as a CLI argument (which gets
  * truncated on Windows), we write the prompt to a file and tell the agent
@@ -96,84 +94,79 @@ function buildReferenceMessage(promptFile: string, taskId?: string): string {
 }
 
 /**
- * Spawn a detached background process with stdout/stderr redirected to a log file.
- * Uses tinyexec's `x()` which correctly resolves `.ps1` / `.cmd` scripts on Windows,
- * then detaches the child process so the parent CLI can exit immediately.
+ * Write a log header to the log file (shared by both cursor and claude adapters).
  */
-function launchDetached(cmd: string, args: string[], logFile?: string): void {
-  let stdout: 'ignore' | number = 'ignore'
-  let stderr: 'ignore' | number = 'ignore'
-
-  if (logFile) {
-    mkdirSync(dirname(logFile), { recursive: true })
-    const fd = openSync(logFile, 'a')
-    stdout = fd
-    stderr = fd
-  }
-
-  const result = x(cmd, args, {
-    nodeOptions: {
-      detached: true,
-      stdio: ['ignore', stdout, stderr],
-    },
-  })
-
-  const child = result.process
-  if (child) {
-    child.on('error', (err) => {
-      logger.error(`launchDetached: failed to spawn "${cmd}": ${err.message}`)
-    })
-    child.unref()
-  }
-  else {
-    logger.error(`launchDetached: no child process returned for "${cmd}"`)
-  }
+function writeLogHeader(logFile: string, platform: string, sessionId: string, taskId: string, promptFile?: string): void {
+  mkdirSync(dirname(logFile), { recursive: true })
+  writeFileSync(logFile, [
+    `[${platform}.launch] sessionId: ${sessionId}`,
+    `[${platform}.launch] time: ${new Date().toISOString()}`,
+    `[${platform}.launch] taskId: ${taskId}`,
+    promptFile ? `[${platform}.launch] promptFile: ${promptFile}` : '',
+    '',
+  ].filter(Boolean).join('\n'), 'utf-8')
 }
 
 /**
- * Launch a command in a **new visible terminal window**.
+ * Spawn a background process using tinyexec x().
  *
- * On Windows: writes a `.cmd` script and opens it via `start` — creates exactly
- * one new console window where the user can watch the agent work in real-time.
- * The parent process returns immediately (non-blocking).
- *
- * On other platforms: falls back to `launchDetached`.
+ * Uses x() directly (no detached stdio redirection) — this resolves .ps1/.cmd
+ * scripts correctly on Windows. The child process is unref'd so the parent
+ * CLI can exit; on Windows child processes survive parent exit by default.
  */
-function launchInTerminal(
-  cmd: string,
-  args: string[],
-  options?: { title?: string, logFile?: string },
-): void {
-  if (process.platform === 'win32') {
-    const scriptDir = options?.logFile ? dirname(options.logFile) : '.'
-    const scriptPath = join(scriptDir, '_agent_run.cmd')
-    mkdirSync(dirname(scriptPath), { recursive: true })
+function spawnBackground(cmd: string, args: string[], logFile?: string): ReturnType<typeof x> {
+  logger.debug(`[spawnBackground] cmd=${cmd} args=${JSON.stringify(args.slice(0, -1).concat(['<prompt>']))}`)
 
-    const title = options?.title ?? 'Agent Task'
-    // Build the command line; quote args that contain spaces or are plain values
-    const cmdLine = [cmd, ...args.map(a => a.startsWith('-') ? a : `"${a}"`)].join(' ')
-    const script = [
-      '@echo off',
-      `title ${title}`,
-      cmdLine,
-      'exit',
-    ].join('\r\n')
+  const result = x(cmd, args, { nodeOptions: { detached: true } })
+  const child = result.process
 
-    writeFileSync(scriptPath, script, 'utf-8')
+  logger.debug(`[spawnBackground] spawned pid=${child?.pid ?? 'none'}`)
 
-    // Use shell: true so `start` is interpreted as a cmd built-in.
-    // Empty quotes "" are required as the window title for `start`.
-    const absScript = join(process.cwd(), scriptPath)
-    const child = spawn(`start "" "${absScript}"`, [], {
-      detached: true,
-      stdio: 'ignore',
-      shell: true,
+  if (child) {
+    // Pipe stdout/stderr to log file
+    if (logFile) {
+      child.stdout?.on('data', (chunk: Buffer) => {
+        try {
+          appendFileSync(logFile, chunk)
+        }
+        catch {}
+      })
+      child.stderr?.on('data', (chunk: Buffer) => {
+        try {
+          appendFileSync(logFile, chunk)
+        }
+        catch {}
+      })
+    }
+
+    child.on('error', (err) => {
+      logger.error(`[spawnBackground] process error: ${err.message}`)
+      if (logFile) {
+        try {
+          appendFileSync(logFile, `\n[ERROR] ${err.message}\n`)
+        }
+        catch {}
+      }
     })
+
+    child.on('exit', (code, signal) => {
+      logger.debug(`[spawnBackground] exit code=${code} signal=${signal}`)
+      if (logFile) {
+        try {
+          appendFileSync(logFile, `\n[exit] code=${code} signal=${signal}\n`)
+        }
+        catch {}
+      }
+    })
+
+    // Unref so parent CLI can exit while child continues
     child.unref()
   }
   else {
-    launchDetached(cmd, args, options?.logFile)
+    logger.error(`[spawnBackground] no child process returned for "${cmd}"`)
   }
+
+  return result
 }
 
 export const claude: Agent = {
@@ -191,35 +184,21 @@ export const claude: Agent = {
     const sessionId = randomUUID()
     const taskId = options?.taskId ?? 'unknown'
 
-    // Ensure .claude/settings.json grants bypassPermissions so the agent
-    // can freely run Bash, Read, Write etc. without interactive approval.
     ensureClaudeSettings(process.cwd())
 
     if (options?.logFile) {
-      mkdirSync(dirname(options.logFile), { recursive: true })
-      writeFileSync(options.logFile, [
-        `[claude.launch] sessionId: ${sessionId}`,
-        `[claude.launch] time: ${new Date().toISOString()}`,
-        `[claude.launch] taskId: ${taskId}`,
-        options.promptFile ? `[claude.launch] promptFile: ${options.promptFile}` : '',
-        '',
-      ].filter(Boolean).join('\n'))
+      writeLogHeader(options.logFile, 'claude', sessionId, taskId, options.promptFile)
     }
 
-    // Launch in a new visible terminal window so the user can watch in real-time.
-    // Uses the prompt file to avoid long CLI arguments; drops --append-system-prompt
-    // because the prompt file already contains the full system + task prompt.
     const userPrompt = options?.promptFile
       ? `Read and execute the task in ${options.promptFile}`
       : prompt
 
-    launchInTerminal(
+    logger.debug(`[claude.launch] taskId=${taskId} sessionId=${sessionId}`)
+    spawnBackground(
       'claude',
       ['--session-id', sessionId, '-p', userPrompt],
-      {
-        title: `Agent: ${taskId.slice(0, 8)}`,
-        logFile: options?.logFile,
-      },
+      options?.logFile,
     )
 
     return sessionId
@@ -251,34 +230,21 @@ export const cursor: Agent = {
     const sessionId = randomUUID()
     const taskId = options?.taskId ?? 'unknown'
 
-    // Ensure .cursor/cli.json grants Shell/Read/Write permissions.
-    // Combined with --force, the agent can execute all allowed tools.
     ensureCursorSettings(process.cwd())
 
     if (options?.logFile) {
-      mkdirSync(dirname(options.logFile), { recursive: true })
-      writeFileSync(options.logFile, [
-        `[cursor.launch] sessionId: ${sessionId}`,
-        `[cursor.launch] time: ${new Date().toISOString()}`,
-        `[cursor.launch] taskId: ${taskId}`,
-        options.promptFile ? `[cursor.launch] promptFile: ${options.promptFile}` : '',
-        '',
-      ].filter(Boolean).join('\n'))
+      writeLogHeader(options.logFile, 'cursor', sessionId, taskId, options.promptFile)
     }
 
-    // Use prompt file to avoid long CLI arguments (Windows truncation).
     const userPrompt = options?.promptFile
       ? buildReferenceMessage(options.promptFile, options.taskId)
       : `${system}\n\n${prompt}`
 
-    // Launch in a new visible terminal window with --force for full tool access.
-    launchInTerminal(
+    logger.debug(`[cursor.launch] taskId=${taskId} sessionId=${sessionId}`)
+    spawnBackground(
       'agent',
       ['--print', '--force', '--output-format', 'text', userPrompt],
-      {
-        title: `Agent: ${taskId.slice(0, 8)}`,
-        logFile: options?.logFile,
-      },
+      options?.logFile,
     )
 
     return sessionId
@@ -303,7 +269,6 @@ function parseAgentSessionId(output: string): string {
   }
   catch {}
 
-  // Fallback: try to find JSON in multi-line output
   for (const line of output.split('\n')) {
     try {
       const json = JSON.parse(line.trim())

@@ -1,6 +1,5 @@
-import type { Diagnosis, ProblemType } from '../../../src/mediator/types'
 import type { Score } from '../../../src/scorer/types'
-import type { Task, TaskEvent, TaskHistory } from '../../../src/task/types'
+import type { TaskEvent, TaskHistory } from '../../../src/task/types'
 import { createStorage } from 'unstorage'
 import memoryDriver from 'unstorage/drivers/memory'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -35,7 +34,7 @@ describe('mediatorAnalyzer', () => {
             criteria: [],
             suggestions: [],
             scorerId: 'scorer-1',
-            scorerType: 'rule',
+            scorerType: 'agent',
             scoredAt: Date.now() - 3000,
             metadata: {},
           },
@@ -48,7 +47,7 @@ describe('mediatorAnalyzer', () => {
             criteria: [],
             suggestions: [],
             scorerId: 'scorer-1',
-            scorerType: 'rule',
+            scorerType: 'agent',
             scoredAt: Date.now() - 2000,
             metadata: {},
           },
@@ -61,7 +60,7 @@ describe('mediatorAnalyzer', () => {
             criteria: [],
             suggestions: [],
             scorerId: 'scorer-1',
-            scorerType: 'rule',
+            scorerType: 'agent',
             scoredAt: Date.now() - 1000,
             metadata: {},
           },
@@ -248,7 +247,7 @@ describe('mediatorAnalyzer', () => {
             criteria: [],
             suggestions: [],
             scorerId: 'scorer-1',
-            scorerType: 'rule',
+            scorerType: 'agent',
             scoredAt: Date.now() - 3000,
             metadata: {},
           },
@@ -261,7 +260,7 @@ describe('mediatorAnalyzer', () => {
             criteria: [],
             suggestions: [],
             scorerId: 'scorer-1',
-            scorerType: 'rule',
+            scorerType: 'agent',
             scoredAt: Date.now() - 2000,
             metadata: {},
           },
@@ -274,7 +273,7 @@ describe('mediatorAnalyzer', () => {
             criteria: [],
             suggestions: [],
             scorerId: 'scorer-1',
-            scorerType: 'rule',
+            scorerType: 'agent',
             scoredAt: Date.now() - 1000,
             metadata: {},
           },

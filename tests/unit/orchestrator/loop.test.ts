@@ -32,7 +32,7 @@ describe('orchestrator main loop', () => {
     registry = new AgentRegistry()
   })
 
-  it('task goes through full lifecycle (pending → running → completed)', async () => {
+  it('task goes through full lifecycle (pending → running → completed) without scorer', async () => {
     const task = await taskManager.createTask({ description: 'coding task', type: 'local' })
     const agent = createMockAgent({ id: 'ag-1', capabilities: ['coding'], specialties: [] })
     registry.register(agent)
@@ -48,7 +48,6 @@ describe('orchestrator main loop', () => {
       classifyTask: mockClassify,
       registry,
       execute: mockExecute,
-      evaluatorConfig: { scoreThreshold: 0.5, rules: [] },
     }
     await runLoop(task.id, deps)
     const updated = await taskManager.getTask(task.id)
@@ -56,37 +55,35 @@ describe('orchestrator main loop', () => {
     expect(mockExecute).toHaveBeenCalledTimes(1)
   })
 
-  it('task gets retried on score rejection', async () => {
-    const task = await taskManager.createTask({ description: 'coding retry', type: 'local' })
+  it('task transitions to waiting_eval when scorerAgentId is configured', async () => {
+    const task = await taskManager.createTask({ description: 'coding with scorer', type: 'local' })
     const agent = createMockAgent({ id: 'ag-1', capabilities: ['coding'], specialties: [] })
     registry.register(agent)
     mockClassify.mockReturnValue('local')
-    mockExecute
-      .mockResolvedValueOnce({ taskId: task.id, success: false, duration: 10, metadata: {} })
-      .mockResolvedValueOnce({ taskId: task.id, success: true, duration: 20, metadata: {} })
+    mockExecute.mockResolvedValue({
+      taskId: task.id,
+      success: true,
+      duration: 50,
+      metadata: {},
+    })
     const deps: OrchestratorLoopDeps = {
       taskManager,
       classifyTask: mockClassify,
       registry,
       execute: mockExecute,
-      evaluatorConfig: {
-        scoreThreshold: 1,
-        rules: [
-          { name: 'R', weight: 1, condition: (_t, r) => r.success, score: 'pass', feedback: 'OK' },
-        ],
-      },
+      scorerAgentId: 'scorer',
     }
     await runLoop(task.id, deps)
     const updated = await taskManager.getTask(task.id)
-    expect(updated?.status).toBe('completed')
-    expect(mockExecute).toHaveBeenCalledTimes(2)
+    expect(updated?.status).toBe('waiting_eval')
+    expect(mockExecute).toHaveBeenCalledTimes(1)
   })
 
-  it('max retries exhausted results in failure', async () => {
+  it('task fails when execution fails and max retries exceeded', async () => {
     const task = await taskManager.createTask({
       description: 'coding always fail',
       type: 'local',
-      maxRetries: 2,
+      maxRetries: 0,
     })
     const agent = createMockAgent({ id: 'ag-1', capabilities: ['coding'], specialties: [] })
     registry.register(agent)
@@ -97,16 +94,25 @@ describe('orchestrator main loop', () => {
       classifyTask: mockClassify,
       registry,
       execute: mockExecute,
-      evaluatorConfig: {
-        scoreThreshold: 1,
-        rules: [
-          { name: 'R', weight: 1, condition: () => false, score: 'reject', feedback: 'No' },
-        ],
-      },
     }
     await runLoop(task.id, deps)
     const updated = await taskManager.getTask(task.id)
     expect(updated?.status).toBe('failed')
-    expect(mockExecute).toHaveBeenCalledTimes(3)
+    expect(mockExecute).toHaveBeenCalledTimes(1)
+  })
+
+  it('task fails when no agent is available', async () => {
+    const task = await taskManager.createTask({ description: 'no agent', type: 'local' })
+    mockClassify.mockReturnValue('local')
+    const deps: OrchestratorLoopDeps = {
+      taskManager,
+      classifyTask: mockClassify,
+      registry,
+      execute: mockExecute,
+    }
+    await runLoop(task.id, deps)
+    const updated = await taskManager.getTask(task.id)
+    expect(updated?.status).toBe('failed')
+    expect(mockExecute).not.toHaveBeenCalled()
   })
 })

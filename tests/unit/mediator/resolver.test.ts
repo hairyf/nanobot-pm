@@ -1,5 +1,4 @@
 import type { Diagnosis, Mediation, Solution } from '../../../src/mediator/types'
-import type { Task } from '../../../src/task/types'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MediatorResolver } from '../../../src/mediator/resolver'
 import { createMockTask } from '../../helpers'

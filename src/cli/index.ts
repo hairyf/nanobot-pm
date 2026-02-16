@@ -1,8 +1,10 @@
 import { defineCommand, runMain } from 'citty'
 import packageJSON from '../../package.json' with { type: 'json' }
+import { askCommand } from './commands/ask'
 import { completeCommand } from './commands/complete'
 import { initCommand } from './commands/init'
 import { respondCommand } from './commands/respond'
+import { scoreCommand } from './commands/score'
 import { specifyCommand } from './commands/specify'
 import { statusCommand } from './commands/status'
 import { subtaskCommand } from './commands/subtask'
@@ -18,8 +20,10 @@ const main = defineCommand({
     init: initCommand,
     specify: specifyCommand,
     complete: completeCommand,
+    score: scoreCommand,
     status: statusCommand,
     wait: waitCommand,
+    ask: askCommand,
     subtask: subtaskCommand,
     respond: respondCommand,
   },
